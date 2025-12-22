@@ -1,0 +1,28 @@
+product:
+  type: lib
+  platforms: [ jvm, linuxArm64, linuxX64, macosArm64, mingwX64 ]
+
+test-dependencies@jvm:
+  - $kotlin.test.junit5
+
+dependencies:
+  - $kotlin.serialization.json
+  - $kotlin.serialization.properties
+  - $ktor.server.core
+  - $ktor.client.core
+  - $ktor.client.cio
+  - $ktor.client.serialization
+  - $ktor.client.contentNegotiation
+  - $ktor.serialization.kotlinx.json
+  - $libs.kotlinx.datetime
+
+
+settings:
+  kotlin:
+    languageVersion: 2.2
+    serialization:
+      enabled: true
+      version: 1.9.0
+  ktor:
+    enabled: true
+    version: 3.3.1
