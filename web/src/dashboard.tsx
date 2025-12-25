@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import {
-    MoreVertical
-} from 'lucide-react';
+import * as Icons from 'lucide-react';
 
 // --- Types ---
 import type { AppData, ServerStats } from './types/dashboard';
@@ -21,6 +19,22 @@ export default function NexusDashboard() {
     const [time, setTime] = useState(new Date());
     const [editMode, setEditMode] = useState(false);
     const [stats, setStats] = useState<ServerStats>({ cpu: "12", ram: "42", temp: "45" });
+    const [apps, setApps] = useState<AppData[]>(import.meta.env.DEV ? INITIAL_APPS : []);
+
+    useEffect(() => {
+        if (!import.meta.env.DEV) {
+            fetch('/api/apps')
+                .then(res => res.json())
+                .then(data => {
+                    const processed = data.map((app: any) => ({
+                        ...app,
+                        icon: (Icons as any)[app.icon] || Icons.LayoutGrid
+                    }));
+                    setApps(processed);
+                })
+                .catch(err => console.error('Failed to fetch apps:', err));
+        }
+    }, []);
 
     // Clock Ticker
     useEffect(() => {
@@ -55,12 +69,12 @@ export default function NexusDashboard() {
     // Group Apps for Display
     const groupedApps = useMemo(() => {
         const groups: Record<string, AppData[]> = {};
-        INITIAL_APPS.forEach(app => {
+        apps.forEach(app => {
             if (!groups[app.category]) groups[app.category] = [];
             groups[app.category].push(app);
         });
         return groups;
-    }, []);
+    }, [apps]);
 
     return (
         <div className={`min-h-screen font-sans overflow-x-hidden transition-colors duration-500 ${isDark ? 'bg-slate-950 text-slate-200 selection:bg-indigo-500/30 selection:text-indigo-200' : 'bg-slate-50 text-slate-600 selection:bg-violet-200 selection:text-violet-900'}`}>
@@ -68,7 +82,7 @@ export default function NexusDashboard() {
             <CommandPalette
                 isOpen={isCommandOpen}
                 onClose={() => setIsCommandOpen(false)}
-                apps={INITIAL_APPS}
+                apps={apps}
                 isDark={isDark}
             />
 
@@ -124,7 +138,7 @@ export default function NexusDashboard() {
                                 {editMode && (
                                     <button className={`aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all group ${isDark ? 'border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/5 text-slate-500 hover:text-indigo-400' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50 text-slate-400 hover:text-violet-500'}`}>
                                         <div className={`p-3 rounded-full mb-2 transition-colors ${isDark ? 'bg-white/5 group-hover:bg-indigo-500/20' : 'bg-slate-100 group-hover:bg-violet-100'}`}>
-                                            <MoreVertical size={24} />
+                                            <Icons.MoreVertical size={24} />
                                         </div>
                                         <span className="text-xs font-bold">Add Service</span>
                                     </button>
