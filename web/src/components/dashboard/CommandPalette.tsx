@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, ExternalLink } from 'lucide-react';
-import type { AppData } from '../../types/dashboard';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
+import {ExternalLink, Search} from 'lucide-react';
+import type {AppData} from '../../types/dashboard';
 
 interface CommandPaletteProps {
     isOpen: boolean;
@@ -86,7 +86,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                     ${isDark ? 'hover:bg-white/5' : 'hover:bg-violet-50/50'}
                   `}
                                     onClick={() => {
-                                        console.log(`Launching ${app.name}`);
+                                        if (app.url) {
+                                            window.open(app.url, '_blank', 'noopener,noreferrer');
+                                        }
                                         onClose();
                                     }}
                                 >

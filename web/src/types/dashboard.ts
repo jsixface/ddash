@@ -1,6 +1,6 @@
-import type { LucideIcon } from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 
-export type AppStatus = 'running' | 'idle' | 'warning' | 'stopped';
+export type AppStatus = 'RUNNING' | 'EXITED' | 'RESTARTING' | 'CREATED' | 'PAUSED' | 'REMOVING' | 'DEAD';
 
 export interface AppData {
     id: number;

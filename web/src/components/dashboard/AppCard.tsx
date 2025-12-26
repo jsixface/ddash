@@ -1,8 +1,8 @@
 import React from 'react';
-import { ExternalLink, Pin, FileText, RefreshCw, Power, X } from 'lucide-react';
-import type { AppData, MenuItem } from '../../types/dashboard';
-import { ContextMenu } from '../ui/ContextMenu';
-import { StatusDot } from '../ui/StatusDot';
+import {ExternalLink, FileText, Pin, Power, RefreshCw, X} from 'lucide-react';
+import type {AppData, MenuItem} from '../../types/dashboard';
+import {ContextMenu} from '../ui/ContextMenu';
+import {StatusDot} from '../ui/StatusDot';
 
 interface AppCardProps {
     app: AppData;
@@ -13,8 +13,14 @@ interface AppCardProps {
 export const AppCard: React.FC<AppCardProps> = ({ app, editMode, isDark }) => {
     const Icon = app.icon;
 
+    const handleLaunch = () => {
+        if (app.url) {
+            window.open(app.url, '_blank', 'noopener,noreferrer');
+        }
+    };
+
     const menuItems: MenuItem[] = [
-        { label: "Launch App", icon: ExternalLink, action: () => console.log("Launch") },
+        { label: "Launch App", icon: ExternalLink, action: handleLaunch },
         { label: "Pin to Home", icon: Pin, action: () => console.log("Pin") },
         { label: "View Logs", icon: FileText, action: () => console.log("Logs") },
         { label: "Restart Container", icon: RefreshCw, action: () => console.log("Restart") },
@@ -23,14 +29,16 @@ export const AppCard: React.FC<AppCardProps> = ({ app, editMode, isDark }) => {
 
     return (
         <ContextMenu menuItems={menuItems} isDark={isDark}>
-            <div className={`
+            <div
+                onClick={() => !editMode && handleLaunch()}
+                className={`
         relative group flex flex-col items-center justify-center 
         aspect-square p-4 rounded-2xl backdrop-blur-sm border
         transition-all duration-300 ease-out
         ${editMode ? 'animate-pulse cursor-move' : 'hover:-translate-y-1 cursor-pointer'}
         ${isDark
-                    ? 'bg-gradient-to-br from-white/5 to-white/0 border-white/5 hover:border-white/20 hover:bg-white/10'
-                    : 'bg-white/60 border-slate-200/60 shadow-sm hover:shadow-md hover:border-violet-200 hover:bg-white/80'}
+                        ? 'bg-gradient-to-br from-white/5 to-white/0 border-white/5 hover:border-white/20 hover:bg-white/10'
+                        : 'bg-white/60 border-slate-200/60 shadow-sm hover:shadow-md hover:border-violet-200 hover:bg-white/80'}
       `}>
                 {editMode && (
                     <div className="absolute top-2 right-2 p-1 bg-rose-100 text-rose-500 rounded-full hover:bg-rose-500 hover:text-white transition-colors z-20">
@@ -62,7 +70,7 @@ export const AppCard: React.FC<AppCardProps> = ({ app, editMode, isDark }) => {
 
                 <div className="mt-2 flex items-center gap-2">
                     <StatusDot status={app.status} />
-                    <span className={`text-[10px] font-mono font-medium ${isDark ? (app.status === 'stopped' ? 'text-slate-500' : 'text-slate-400') : (app.status === 'stopped' ? 'text-slate-400' : 'text-slate-500')}`}>
+                    <span className={`text-[10px] font-mono font-medium ${isDark ? (app.status === 'EXITED' ? 'text-slate-500' : 'text-slate-400') : (app.status === 'EXITED' ? 'text-slate-400' : 'text-slate-500')}`}>
                         {app.status}
                     </span>
                 </div>
