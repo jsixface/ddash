@@ -29,9 +29,12 @@ class DockerAppService(private val apiClient: DockerApiClient) {
     private fun mapToAppData(index: Int, container: DockerContainer): AppData? {
         val labels = container.labels
         val enabled = labels[DashLabels.Enable.label]?.toBoolean() ?: false
+        // If not explicitly enabled, we don't show it on dashboard.
         if (!enabled) return null
         val name = labels[DashLabels.Name.label] ?: container.names.firstOrNull()?.removePrefix("/") ?: container.id
-        val route = (if (settings.caddySecureRouting) "https://" else "http://") + labels[DashLabels.Route.label]
+        val route = labels[DashLabels.Route.label]?.let {
+            (if (settings.caddySecureRouting) "https://" else "http://") + it
+        } ?: ""
         val category = labels[DashLabels.Category.label] ?: "Uncategorized"
         val icon = labels[DashLabels.Icon.label] ?: "LayoutGrid"
         val status = try {

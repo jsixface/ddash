@@ -10,4 +10,12 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
     override suspend fun listImages(): List<DockerImage> = client.get("/images/json").body()
 
     override suspend fun listContainers(): List<DockerContainer> = client.get("/containers/json").body()
+
+    override suspend fun ping(): Boolean {
+        return try {
+            client.get("/_ping").status.value == 200
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

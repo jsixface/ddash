@@ -22,7 +22,7 @@ data class DockerContainer(
 data class DockerPort(
     @SerialName("IP") val ip: String? = null,
     @SerialName("PrivatePort") val privatePort: Int,
-    @SerialName("PublicPort") val publicPort: Int,
+    @SerialName("PublicPort") val publicPort: Int? = null,
     @SerialName("Type") val type: String,
 ) {
     override fun toString(): String {

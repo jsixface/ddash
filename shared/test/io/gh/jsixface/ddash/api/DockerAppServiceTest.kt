@@ -13,6 +13,7 @@ class DockerAppServiceTest {
     class MockDockerApiClient(private val containers: List<DockerContainer>) : DockerApiClient {
         override suspend fun listImages(): List<DockerImage> = emptyList()
         override suspend fun listContainers(): List<DockerContainer> = containers
+        override suspend fun ping(): Boolean = true
     }
 
     @Test
@@ -24,6 +25,7 @@ class DockerAppServiceTest {
             state = "running",
             status = "Up 2 hours",
             labels = mapOf(
+                DashLabels.Enable.label to "true",
                 DashLabels.Name.label to "Custom Name",
                 DashLabels.Category.label to "Tools",
                 DashLabels.Route.label to "localhost:8081",
@@ -39,7 +41,7 @@ class DockerAppServiceTest {
         val app = result[0]
         assertEquals("Custom Name", app.name)
         assertEquals("Tools", app.category)
-        assertEquals("localhost:8081", app.url)
+        assertEquals("http://localhost:8081", app.url)
         assertEquals("Terminal", app.icon)
         assertEquals(AppStatus.RUNNING, app.status)
     }
@@ -52,7 +54,7 @@ class DockerAppServiceTest {
             image = "image2",
             state = "exited",
             status = "Exited (0) 5 minutes ago",
-            labels = emptyMap()
+            labels = mapOf(DashLabels.Enable.label to "true")
         )
         val apiClient = MockDockerApiClient(listOf(container))
         val service = DockerAppService(apiClient)
@@ -76,7 +78,7 @@ class DockerAppServiceTest {
             image = "image3",
             state = "running",
             status = "Up",
-            labels = emptyMap()
+            labels = mapOf(DashLabels.Enable.label to "true")
         )
         val apiClient = MockDockerApiClient(listOf(container))
         val service = DockerAppService(apiClient)

@@ -7,4 +7,6 @@ interface DockerApiClient {
     suspend fun listImages(): List<DockerImage>
 
     suspend fun listContainers(): List<DockerContainer>
+
+    suspend fun ping(): Boolean
 }

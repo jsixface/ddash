@@ -6,4 +6,6 @@
 
 * Keep code clean and maintainable by following best practices and conventions
 
-* When you have to build, try building for only macOs platform rather than all platforms.
+* When you have to build, try building for only jvm platform rather than all platforms.
+
+* Run test only for JVM by `./amper --platform=jvm`. You can include only the needed platform by `--include-module=` flag
