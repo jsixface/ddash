@@ -3,9 +3,10 @@ package io.gh.jsixface.ddash.docker
 enum class DashLabels(val label: String) {
     Name("ddash.name"),
     Category("ddash.category"),
-    Url("ddash.url"),
+    Route("ddash.route"),
     Icon("ddash.icon"),
-    Port("ddash.port");
+    Port("ddash.port"),
+    Enable("ddash.enable");
 
     companion object {
         fun fromLabel(label: String): DashLabels? {

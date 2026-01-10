@@ -26,7 +26,7 @@ class DockerAppServiceTest {
             labels = mapOf(
                 DashLabels.Name.label to "Custom Name",
                 DashLabels.Category.label to "Tools",
-                DashLabels.Url.label to "http://localhost:8081",
+                DashLabels.Route.label to "localhost:8081",
                 DashLabels.Icon.label to "Terminal"
             )
         )
@@ -39,7 +39,7 @@ class DockerAppServiceTest {
         val app = result[0]
         assertEquals("Custom Name", app.name)
         assertEquals("Tools", app.category)
-        assertEquals("http://localhost:8081", app.url)
+        assertEquals("localhost:8081", app.url)
         assertEquals("Terminal", app.icon)
         assertEquals(AppStatus.RUNNING, app.status)
     }

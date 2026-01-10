@@ -1,12 +1,14 @@
 package io.gh.jsixface.ddash.api
 
 import co.touchlab.kermit.Logger
+import io.gh.jsixface.ddash.Globals
 import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
 import io.gh.jsixface.ddash.docker.def.DockerContainer
 
 class DockerAppService(private val apiClient: DockerApiClient) {
     private val logger = Logger.withTag("DockerAppService")
+    private val settings = Globals.settings
 
     // Get the docker container details through docker sock API.
     // Extract the label metadata from containers and convert to AppData
@@ -15,7 +17,7 @@ class DockerAppService(private val apiClient: DockerApiClient) {
             logger.d { "Fetching containers from Docker API" }
             val containers = apiClient.listContainers()
             logger.i { "Found ${containers.size} containers" }
-            containers.mapIndexed { index, container ->
+            containers.mapIndexedNotNull {  index, container ->
                 mapToAppData(index, container)
             }
         } catch (e: Exception) {
@@ -24,10 +26,12 @@ class DockerAppService(private val apiClient: DockerApiClient) {
         }
     }
 
-    private fun mapToAppData(index: Int, container: DockerContainer): AppData {
+    private fun mapToAppData(index: Int, container: DockerContainer): AppData? {
         val labels = container.labels
+        val enabled = labels[DashLabels.Enable.label]?.toBoolean() ?: false
+        if (!enabled) return null
         val name = labels[DashLabels.Name.label] ?: container.names.firstOrNull()?.removePrefix("/") ?: container.id
-        val url = labels[DashLabels.Url.label] ?: ""
+        val route = (if (settings.caddySecureRouting) "https://" else "http://") + labels[DashLabels.Route.label]
         val category = labels[DashLabels.Category.label] ?: "Uncategorized"
         val icon = labels[DashLabels.Icon.label] ?: "LayoutGrid"
         val status = try {
@@ -39,7 +43,7 @@ class DockerAppService(private val apiClient: DockerApiClient) {
         return AppData(
             id = index,
             name = name,
-            url = url,
+            url = route,
             category = category,
             status = status,
             icon = icon

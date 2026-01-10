@@ -8,6 +8,7 @@ data class Settings(
     val port: Int = getEnv(EnvVars.PORT)?.toIntOrNull() ?: 8080,
     val host: String = getEnv(EnvVars.LISTEN_ADDR) ?: "0.0.0.0",
     val caddyAdminUrl: String = getEnv(EnvVars.CADDY_ADMIN_URL) ?: "http://localhost:2019",
+    val caddySecureRouting: Boolean = getEnv(EnvVars.CADDY_SECURE_ROUTING)?.toBoolean() ?: false,
 )
 
 object Globals {
@@ -21,4 +22,5 @@ enum class EnvVars {
     PORT,
     LISTEN_ADDR,
     CADDY_ADMIN_URL,
+    CADDY_SECURE_ROUTING,
 }
