@@ -102,7 +102,7 @@ export default function NexusDashboard() {
                 )}
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
 
                 <DashboardHeader
                     time={time}
@@ -119,28 +119,28 @@ export default function NexusDashboard() {
                 />
 
                 {/* Content Grid */}
-                <div className="space-y-10 pb-20">
+                <div className="space-y-8 md:space-y-10 pb-28 md:pb-20">
                     {Object.entries(groupedApps).map(([category, apps]) => (
                         <section key={category} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex items-center gap-3 mb-5 px-1">
-                                <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
+                            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-5 px-1">
+                                <h2 className={`text-xs md:text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
                                     {category}
                                 </h2>
                                 <div className={`h-px flex-1 bg-gradient-to-r ${isDark ? 'from-white/10' : 'from-slate-200'} to-transparent`} />
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
                                 {apps.map((app) => (
                                     <AppCard key={app.id} app={app} editMode={editMode} isDark={isDark} />
                                 ))}
 
                                 {/* Add New Placeholder (Only in Edit Mode) */}
                                 {editMode && (
-                                    <button className={`aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all group ${isDark ? 'border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/5 text-slate-500 hover:text-indigo-400' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50 text-slate-400 hover:text-violet-500'}`}>
-                                        <div className={`p-3 rounded-full mb-2 transition-colors ${isDark ? 'bg-white/5 group-hover:bg-indigo-500/20' : 'bg-slate-100 group-hover:bg-violet-100'}`}>
-                                            <Icons.MoreVertical size={24} />
+                                    <button className={`aspect-square rounded-xl md:rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all group ${isDark ? 'border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/5 text-slate-500 hover:text-indigo-400' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50 text-slate-400 hover:text-violet-500'}`}>
+                                        <div className={`p-2 md:p-3 rounded-full mb-1 md:mb-2 transition-colors ${isDark ? 'bg-white/5 group-hover:bg-indigo-500/20' : 'bg-slate-100 group-hover:bg-violet-100'}`}>
+                                            <Icons.MoreVertical size={20} className="md:w-6 md:h-6" />
                                         </div>
-                                        <span className="text-xs font-bold">Add Service</span>
+                                        <span className="text-[10px] md:text-xs font-bold">Add Service</span>
                                     </button>
                                 )}
                             </div>

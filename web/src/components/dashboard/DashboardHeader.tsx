@@ -11,17 +11,17 @@ interface DashboardHeaderProps {
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ time, stats, isDark }) => {
     return (
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 md:gap-6 mb-8 md:mb-12">
             <div>
-                <h1 className={`text-4xl md:text-5xl font-bold tracking-tight mb-2 drop-shadow-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                <h1 className={`text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-1 md:mb-2 drop-shadow-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>
                     {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </h1>
-                <p className={`text-lg font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className={`text-sm sm:text-base md:text-lg font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     {time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
                 </p>
             </div>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 w-full md:w-auto">
                 <ServerStat
                     icon={Cpu}
                     label="CPU Load"
