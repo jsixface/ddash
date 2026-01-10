@@ -1,19 +1,15 @@
 import React from 'react';
-import { Search, CheckCircle, Edit3, Sun, Moon, Settings } from 'lucide-react';
+import { Search, Sun, Moon } from 'lucide-react';
 import { Tooltip } from '../ui/Tooltip';
 
 interface DashboardActionBarProps {
     onSearchClick: () => void;
-    editMode: boolean;
-    setEditMode: (mode: boolean) => void;
     isDark: boolean;
     setIsDark: (dark: boolean) => void;
 }
 
 export const DashboardActionBar: React.FC<DashboardActionBarProps> = ({
     onSearchClick,
-    editMode,
-    setEditMode,
     isDark,
     setIsDark
 }) => {
@@ -39,27 +35,12 @@ export const DashboardActionBar: React.FC<DashboardActionBarProps> = ({
 
                 {/* Tools */}
                 <div className="flex items-center gap-1 md:gap-2 pr-1 md:pr-2">
-                    <Tooltip content={editMode ? "Save Layout" : "Edit Layout"} isDark={isDark}>
-                        <button
-                            onClick={() => setEditMode(!editMode)}
-                            className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-all shadow-sm ${editMode ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' : (isDark ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'bg-white/40 hover:bg-white/80 border border-white/40 hover:border-white/60 text-slate-400 hover:text-violet-500')}`}
-                        >
-                            {editMode ? <CheckCircle size={18} className="md:w-5 md:h-5" /> : <Edit3 size={18} className="md:w-5 md:h-5" />}
-                        </button>
-                    </Tooltip>
-
                     <Tooltip content={isDark ? "Light Mode" : "Dark Mode"} isDark={isDark}>
                         <button
                             onClick={() => setIsDark(!isDark)}
                             className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-all shadow-sm ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-amber-300' : 'bg-white/40 hover:bg-white/80 border border-white/40 hover:border-white/60 text-slate-400 hover:text-violet-500'}`}
                         >
                             {isDark ? <Sun size={18} className="md:w-5 md:h-5" /> : <Moon size={18} className="md:w-5 md:h-5" />}
-                        </button>
-                    </Tooltip>
-
-                    <Tooltip content="System Settings" isDark={isDark}>
-                        <button className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-colors shadow-sm ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'bg-white/40 hover:bg-white/80 border border-white/40 hover:border-white/60 text-slate-400 hover:text-slate-600'}`}>
-                            <Settings size={18} className="md:w-5 md:h-5" />
                         </button>
                     </Tooltip>
                 </div>

@@ -17,7 +17,6 @@ export default function NexusDashboard() {
     const [isCommandOpen, setIsCommandOpen] = useState(false);
     const [isDark, setIsDark] = useState(false);
     const [time, setTime] = useState(new Date());
-    const [editMode, setEditMode] = useState(false);
     const [stats, setStats] = useState<ServerStats>({ cpu: "12", ram: "42", temp: "45" });
     const [apps, setApps] = useState<AppData[]>(import.meta.env.DEV ? INITIAL_APPS : []);
 
@@ -54,16 +53,46 @@ export default function NexusDashboard() {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // Simulate Live Server Stats
+    // Server Stats Logic (SSE in Production, Simulated in Dev)
     useEffect(() => {
-        const statTimer = setInterval(() => {
-            setStats(prev => ({
-                cpu: Math.min(100, Math.max(5, parseFloat(prev.cpu) + (Math.random() * 10 - 5))).toFixed(0),
-                ram: Math.min(100, Math.max(20, parseFloat(prev.ram) + (Math.random() * 5 - 2.5))).toFixed(0),
-                temp: Math.min(90, Math.max(30, parseFloat(prev.temp) + (Math.random() * 4 - 2))).toFixed(0),
-            }));
-        }, 2000);
-        return () => clearInterval(statTimer);
+        if (import.meta.env.DEV) {
+            const statTimer = setInterval(() => {
+                setStats(prev => ({
+                    cpu: Math.min(100, Math.max(5, parseFloat(prev.cpu) + (Math.random() * 10 - 5))).toFixed(0),
+                    ram: Math.min(100, Math.max(20, parseFloat(prev.ram) + (Math.random() * 5 - 2.5))).toFixed(0),
+                    temp: Math.min(90, Math.max(30, parseFloat(prev.temp) + (Math.random() * 4 - 2))).toFixed(0),
+                }));
+            }, 2000);
+            return () => clearInterval(statTimer);
+        } else {
+            const eventSource = new EventSource('/api/stats');
+
+            eventSource.onmessage = (event) => {
+                try {
+                    const newStats = JSON.parse(event.data);
+                    // Ensure values are strings as per ServerStats interface
+                    setStats({
+                        cpu: String(newStats.cpu),
+                        ram: String(newStats.ram),
+                        temp: String(newStats.temp)
+                    });
+                } catch (err) {
+                    console.error('Failed to parse SSE data:', err);
+                }
+            };
+
+            eventSource.onerror = (err) => {
+                console.error('SSE connection error:', err);
+                // Attempt to reconnect after 5 seconds
+                setTimeout(() => {
+                    // This will trigger a re-render if we were to use a state for connection status,
+                    // but since useEffect will only run once, we might want to handle reconnection differently
+                    // if EventSource doesn't auto-reconnect (it usually does).
+                }, 5000);
+            };
+
+            return () => eventSource.close();
+        }
     }, []);
 
     // Group Apps for Display
@@ -112,8 +141,6 @@ export default function NexusDashboard() {
 
                 <DashboardActionBar
                     onSearchClick={() => setIsCommandOpen(true)}
-                    editMode={editMode}
-                    setEditMode={setEditMode}
                     isDark={isDark}
                     setIsDark={setIsDark}
                 />
@@ -131,18 +158,8 @@ export default function NexusDashboard() {
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
                                 {apps.map((app) => (
-                                    <AppCard key={app.id} app={app} editMode={editMode} isDark={isDark} />
+                                    <AppCard key={app.id} app={app} isDark={isDark} />
                                 ))}
-
-                                {/* Add New Placeholder (Only in Edit Mode) */}
-                                {editMode && (
-                                    <button className={`aspect-square rounded-xl md:rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all group ${isDark ? 'border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/5 text-slate-500 hover:text-indigo-400' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50 text-slate-400 hover:text-violet-500'}`}>
-                                        <div className={`p-2 md:p-3 rounded-full mb-1 md:mb-2 transition-colors ${isDark ? 'bg-white/5 group-hover:bg-indigo-500/20' : 'bg-slate-100 group-hover:bg-violet-100'}`}>
-                                            <Icons.MoreVertical size={20} className="md:w-6 md:h-6" />
-                                        </div>
-                                        <span className="text-[10px] md:text-xs font-bold">Add Service</span>
-                                    </button>
-                                )}
                             </div>
                         </section>
                     ))}

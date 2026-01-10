@@ -1,16 +1,15 @@
 import React from 'react';
-import { ExternalLink, FileText, Pin, Power, RefreshCw, X } from 'lucide-react';
+import { ExternalLink, FileText, Pin, Power, RefreshCw } from 'lucide-react';
 import type { AppData, MenuItem } from '../../types/dashboard';
 import { ContextMenu } from '../ui/ContextMenu';
 import { StatusDot } from '../ui/StatusDot';
 
 interface AppCardProps {
     app: AppData;
-    editMode: boolean;
     isDark: boolean;
 }
 
-export const AppCard: React.FC<AppCardProps> = ({ app, editMode, isDark }) => {
+export const AppCard: React.FC<AppCardProps> = ({ app, isDark }) => {
     const Icon = app.icon;
 
     const handleLaunch = () => {
@@ -30,21 +29,16 @@ export const AppCard: React.FC<AppCardProps> = ({ app, editMode, isDark }) => {
     return (
         <ContextMenu menuItems={menuItems} isDark={isDark}>
             <div
-                onClick={() => !editMode && handleLaunch()}
+                onClick={handleLaunch}
                 className={`
         relative group flex flex-col items-center justify-center 
         aspect-square p-3 md:p-4 rounded-xl md:rounded-2xl backdrop-blur-sm border
         transition-all duration-300 ease-out
-        ${editMode ? 'animate-pulse cursor-move' : 'hover:-translate-y-1 cursor-pointer'}
+        hover:-translate-y-1 cursor-pointer
         ${isDark
                         ? 'bg-gradient-to-br from-white/5 to-white/0 border-white/5 hover:border-white/20 hover:bg-white/10'
                         : 'bg-white/60 border-slate-200/60 shadow-sm hover:shadow-md hover:border-violet-200 hover:bg-white/80'}
       `}>
-                {editMode && (
-                    <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 p-1 bg-rose-100 text-rose-500 rounded-full hover:bg-rose-500 hover:text-white transition-colors z-20">
-                        <X size={10} className="md:w-3 md:h-3" />
-                    </div>
-                )}
 
                 {/* Hover Glow Effect */}
                 <div className={`
