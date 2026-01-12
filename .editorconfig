@@ -16,6 +16,10 @@ tab_width = 4
 # ij_visual_guides = 
 ij_wrap_on_typing = true
 
+[{*.yml,*.yaml}]
+tab_width = 2
+indent_size = 2
+
 [{*.gradle.kts,*.kt,*.kts,*.main.kts,*.space.kts}]
 # ij_kotlin_align_in_columns_case_branch = false
 # ij_kotlin_align_multiline_binary_operation = false
