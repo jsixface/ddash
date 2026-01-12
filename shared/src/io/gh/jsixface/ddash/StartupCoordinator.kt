@@ -4,13 +4,13 @@ import co.touchlab.kermit.Logger
 import io.gh.jsixface.ddash.caddy.CaddyApi
 import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
-import io.gh.jsixface.ddash.docker.def.DockerContainer
 
 class StartupCoordinator(
     private val dockerClient: DockerApiClient,
     private val caddyApi: CaddyApi = CaddyApi()
 ) {
     private val logger = Logger.withTag("StartupCoordinator")
+    private val settings = Globals.settings
 
     suspend fun run() {
         logger.i { "Starting DDash startup checks..." }
@@ -64,7 +64,7 @@ class StartupCoordinator(
             }
         }
 
-        if (changed) {
+        if (changed && settings.caddyAutoSaveConfig) {
             caddyApi.saveConfig()
         }
     }
