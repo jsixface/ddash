@@ -8,4 +8,5 @@
 
 * When you have to build, try building for only jvm platform rather than all platforms.
 
-* Run test only for JVM by `./amper --platform=jvm`. You can include only the needed platform by `--include-module=` flag
+* Run test only for JVM by `./amper --platform jvm`. You can include only the needed platform by `--include-module` 
+  flag

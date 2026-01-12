@@ -3,9 +3,12 @@ package io.gh.jsixface.ddash.api
 import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
 import io.gh.jsixface.ddash.docker.def.DockerContainer
+import io.gh.jsixface.ddash.docker.def.DockerEvent
 import io.gh.jsixface.ddash.docker.def.DockerImage
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
 
 class DockerAppServiceTest {
@@ -14,6 +17,7 @@ class DockerAppServiceTest {
         override suspend fun listImages(): List<DockerImage> = emptyList()
         override suspend fun listContainers(): List<DockerContainer> = containers
         override suspend fun ping(): Boolean = true
+        override fun events(): Flow<DockerEvent> = emptyFlow()
     }
 
     @Test

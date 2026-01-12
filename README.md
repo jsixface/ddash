@@ -1,4 +1,4 @@
-# DDash (D-dash)
+# DDash (Docker-dash)
 
 DDash is a lightweight, self-hosted dashboard and automatic reverse-proxy manager for Docker containers. It is designed to work seamlessly with [Caddy](https://caddyserver.com/), automatically discovering containers and configuring routes based on Docker labels.
 

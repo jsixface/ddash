@@ -4,6 +4,11 @@ import co.touchlab.kermit.Logger
 import io.gh.jsixface.ddash.caddy.CaddyApi
 import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 class StartupCoordinator(
     private val dockerClient: DockerApiClient,
@@ -11,6 +16,7 @@ class StartupCoordinator(
 ) {
     private val logger = Logger.withTag("StartupCoordinator")
     private val settings = Globals.settings
+    private val scope = CoroutineScope(Dispatchers.Default)
 
     suspend fun run() {
         logger.i { "Starting DDash startup checks..." }
@@ -21,9 +27,34 @@ class StartupCoordinator(
         if (dockerOk && caddyOk) {
             logger.i { "Connectivity to Docker and Caddy established." }
             processContainers()
+            startEventMonitoring()
         } else {
             if (!dockerOk) logger.e { "Docker connectivity check failed." }
             if (!caddyOk) logger.e { "Caddy connectivity check failed." }
+        }
+    }
+
+    private fun startEventMonitoring() {
+        scope.launch {
+            logger.i { "Starting Docker event monitoring..." }
+            while (true) {
+                try {
+                    dockerClient.events().collectLatest { event ->
+                        logger.d { "Docker event received: ${event.type} - ${event.action}" }
+                        if (event.type == "container") {
+                            when (event.action) {
+                                "start", "stop", "die", "destroy", "rename", "update" -> {
+                                    logger.i { "Container event [${event.action}] for ${event.actor.id}. Updating routes..." }
+                                    processContainers()
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    logger.e(e) { "Error in Docker event monitoring. Retrying in 5 seconds..." }
+                    delay(5000)
+                }
+            }
         }
     }
 
