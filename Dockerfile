@@ -4,7 +4,8 @@ FROM debian:bookworm-slim
 WORKDIR /app
 
 # Copy the built file into the container
-COPY build/tasks/_linux-cli_linkLinuxX64Release/linux-cli.kexe /app/ddash
+COPY bin/linux-cli.kexe /app/ddash
+COPY web/dist /app/web/dist
 
 EXPOSE 8080
 
