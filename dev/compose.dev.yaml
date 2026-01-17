@@ -1,0 +1,42 @@
+services:
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=test@example.com
+      - PGADMIN_DEFAULT_PASSWORD=admin123
+    volumes:
+      - pgadmindata:/var/lib/pgadmin
+    labels:
+      - "ddash.category=Database"
+      - "ddash.icon=Database"
+      - "ddash.route=pgadmin.neon"
+      - "ddash.enable=true"
+
+  beszel:
+    image: henrygd/beszel:latest
+    container_name: beszel
+    restart: unless-stopped
+    labels:
+      - "ddash.category=Utilities"
+      - "ddash.icon=Gauge"
+      - "ddash.route=monitor.neon"
+      - "ddash.name=Beszel"
+      - "ddash.enable=true"
+
+volumes:
+  pgadmindata:
+  caddy_data:
+  caddy_config:

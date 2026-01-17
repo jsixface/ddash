@@ -14,11 +14,12 @@ fun runApplication(args: Array<String>) {
     logger.i { "Starting Docker Dashboard application..." }
 
     val settings = Globals.settings
+    val dockerClient = ClientFactory.getDockerClient()
+    val apiClient = UnixSocketDockerApiClient(dockerClient)
+    val startupCoordinator = StartupCoordinator(apiClient)
 
     runBlocking {
-        val dockerClient = ClientFactory.getDockerClient()
-        val apiClient = UnixSocketDockerApiClient(dockerClient)
-        StartupCoordinator(apiClient).run()
+        startupCoordinator.run()
     }
 
     val server = embeddedServer(
@@ -31,6 +32,7 @@ fun runApplication(args: Array<String>) {
     setupShutdownHook {
         logger.i { "Shutting down Docker Dashboard..." }
         server.stop(1000, 5000)
+        startupCoordinator.stopMonitoring()
     }
 
     server.start(wait = true)

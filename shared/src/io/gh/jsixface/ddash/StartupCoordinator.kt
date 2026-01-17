@@ -4,8 +4,10 @@ import co.touchlab.kermit.Logger
 import io.gh.jsixface.ddash.caddy.CaddyApi
 import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
+import io.gh.jsixface.ddash.docker.def.DockerContainer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -32,6 +34,10 @@ class StartupCoordinator(
             if (!dockerOk) logger.e { "Docker connectivity check failed." }
             if (!caddyOk) logger.e { "Caddy connectivity check failed." }
         }
+    }
+
+    fun stopMonitoring() {
+        scope.cancel()
     }
 
     private fun startEventMonitoring() {
@@ -81,9 +87,7 @@ class StartupCoordinator(
             val host = container.labels[DashLabels.Route.label]!!
             if (!currentRoutes.contains(host)) {
                 val containerName = container.names.firstOrNull()?.removePrefix("/") ?: container.id
-                val port = container.labels[DashLabels.Port.label]
-                    ?: container.ports?.firstOrNull()?.privatePort?.toString()
-                    ?: "80"
+                val port = getContainerPort(container)
 
                 val upstream = "$containerName:$port"
                 caddyApi.addRoute(host, upstream)
@@ -96,5 +100,13 @@ class StartupCoordinator(
         if (changed && settings.caddyAutoSaveConfig) {
             caddyApi.saveConfig()
         }
+    }
+
+    private fun getContainerPort(container: DockerContainer): String {
+        logger.i { "Container --- ${container.names}, ${container.image}, ${container.ports}" }
+
+        return (container.labels[DashLabels.Port.label]
+            ?: container.ports?.firstOrNull()?.privatePort?.toString()
+            ?: "80")
     }
 }
