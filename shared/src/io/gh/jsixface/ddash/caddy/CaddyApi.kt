@@ -10,11 +10,18 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
-class CaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient()) {
+interface CaddyApi {
+    suspend fun checkConnectivity(): Boolean
+    suspend fun getRoutes(): List<String>
+    suspend fun addRoute(host: String, upstream: String)
+    suspend fun saveConfig()
+}
+
+class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient()) : CaddyApi {
 
     private val logger = Logger.withTag("CaddyApi")
 
-    suspend fun checkConnectivity(): Boolean {
+    override suspend fun checkConnectivity(): Boolean {
         return try {
             client.get("/config/").status.value in 200..299
         } catch (e: Exception) {
@@ -23,7 +30,7 @@ class CaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient()) 
         }
     }
 
-    suspend fun getRoutes(): List<String> {
+    override suspend fun getRoutes(): List<String> {
         return try {
             val servers: CaddyServers = client.get("/config/apps/http").body()
             logger.d { "Found ${servers.servers.size} servers" }
@@ -39,7 +46,7 @@ class CaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient()) 
         }
     }
 
-    suspend fun addRoute(host: String, upstream: String) {
+    override suspend fun addRoute(host: String, upstream: String) {
         logger.i { "Adding route for $host -> $upstream" }
         // We assume 'srv0' exists or we create it. For simplicity, let's try to add to 'srv0'
         // Caddy API allows POST to /config/apps/http/servers/srv0/routes
@@ -60,7 +67,7 @@ class CaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient()) 
         }
     }
 
-    suspend fun saveConfig() {
+    override suspend fun saveConfig() {
         logger.i { "Saving Caddy configuration" }
         try {
             client.post("/admin/config/save")

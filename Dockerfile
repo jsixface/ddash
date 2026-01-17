@@ -9,5 +9,9 @@ COPY web/dist /app/web/dist
 
 EXPOSE 8080
 
+LABEL ddash.enable="true" \
+        ddash.category="Utilities" \
+        ddash.name="D-Dash"
+
 # Run the application
 CMD [ "/app/ddash" ]
