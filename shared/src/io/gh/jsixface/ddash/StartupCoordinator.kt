@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class StartupCoordinator(
     private val dockerClient: DockerApiClient,
-    private val caddyApi: CaddyApi = CaddyApi()
+    private val caddyApi: CaddyApi = CaddyApi(),
 ) {
     private val logger = Logger.withTag("StartupCoordinator")
     private val settings = Globals.settings
@@ -42,11 +42,9 @@ class StartupCoordinator(
                     dockerClient.events().collectLatest { event ->
                         logger.d { "Docker event received: ${event.type} - ${event.action}" }
                         if (event.type == "container") {
-                            when (event.action) {
-                                "start", "stop", "die", "destroy", "rename", "update" -> {
-                                    logger.i { "Container event [${event.action}] for ${event.actor.id}. Updating routes..." }
-                                    processContainers()
-                                }
+                            if (event.action in listOf("start", "stop", "die", "destroy", "rename", "update")) {
+                                logger.i { "Container event [${event.action}] for ${event.actor.id}. Updating routes..." }
+                                processContainers()
                             }
                         }
                     }
@@ -68,7 +66,7 @@ class StartupCoordinator(
 
         val appsToRoute = containers.filter { container ->
             container.labels[DashLabels.Enable.label]?.toBoolean() == true &&
-                    container.labels.containsKey(DashLabels.Route.label)
+                container.labels.containsKey(DashLabels.Route.label)
         }
 
         if (appsToRoute.isEmpty()) {
@@ -84,7 +82,7 @@ class StartupCoordinator(
             if (!currentRoutes.contains(host)) {
                 val containerName = container.names.firstOrNull()?.removePrefix("/") ?: container.id
                 val port = container.labels[DashLabels.Port.label]
-                    ?: container.ports.firstOrNull()?.privatePort?.toString()
+                    ?: container.ports?.firstOrNull()?.privatePort?.toString()
                     ?: "80"
 
                 val upstream = "$containerName:$port"

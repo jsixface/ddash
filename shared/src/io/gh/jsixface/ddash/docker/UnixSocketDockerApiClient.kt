@@ -1,6 +1,7 @@
 package io.gh.jsixface.ddash.docker
 
 import co.touchlab.kermit.Logger
+import io.gh.jsixface.ddash.Globals
 import io.gh.jsixface.ddash.docker.def.DockerContainer
 import io.gh.jsixface.ddash.docker.def.DockerEvent
 import io.gh.jsixface.ddash.docker.def.DockerImage
@@ -9,6 +10,7 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.timeout
 import io.ktor.client.request.get
 import io.ktor.client.request.prepareGet
+import io.ktor.client.request.unixSocket
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readUTF8Line
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +35,7 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
 
     override fun events(): Flow<DockerEvent> = flow {
         client.prepareGet("/events") {
+            unixSocket(Globals.settings.dockerSocket)
             timeout {
                 requestTimeoutMillis = Long.MAX_VALUE
                 socketTimeoutMillis = Long.MAX_VALUE
@@ -46,7 +49,7 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
                         val event = json.decodeFromString<DockerEvent>(line)
                         emit(event)
                     } catch (e: Exception) {
-                        logger.e(e) { "Error decoding Docker event: $line" }
+                        logger.e { "Error decoding Docker event: $line. Reason: ${e.message}" }
                     }
                 }
             }

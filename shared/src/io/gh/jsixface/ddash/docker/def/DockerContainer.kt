@@ -10,7 +10,7 @@ data class DockerContainer(
     @SerialName("Image") val image: String,
     @SerialName("State") val state: String,
     @SerialName("Status") val status: String,
-    @SerialName("Ports") val ports: List<DockerPort> = emptyList(),
+    @SerialName("Ports") val ports: List<DockerPort>? = null,
     @SerialName("Labels") val labels: Map<String, String> = emptyMap(),
 ) {
     override fun toString(): String {
