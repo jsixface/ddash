@@ -1,5 +1,6 @@
 package io.gh.jsixface.ddash
 
+import co.touchlab.kermit.Logger
 import io.gh.jsixface.ddash.docker.UnixSocketDockerApiClient
 import io.gh.jsixface.ddash.server.configureServer
 import io.ktor.server.application.Application
@@ -9,7 +10,8 @@ import kotlinx.coroutines.runBlocking
 
 
 fun runApplication(args: Array<String>) {
-    println("Starting Docker Dashboard application...")
+    val logger = Logger.withTag("EntryPoint")
+    logger.i { "Starting Docker Dashboard application..." }
 
     val settings = Globals.settings
 
@@ -19,10 +21,17 @@ fun runApplication(args: Array<String>) {
         StartupCoordinator(apiClient).run()
     }
 
-    embeddedServer(
+    val server = embeddedServer(
         CIO,
         port = settings.port,
         host = settings.host,
         module = Application::configureServer
-    ).start(wait = true)
+    )
+
+    setupShutdownHook {
+        logger.i { "Shutting down Docker Dashboard..." }
+        server.stop(1000, 5000)
+    }
+
+    server.start(wait = true)
 }

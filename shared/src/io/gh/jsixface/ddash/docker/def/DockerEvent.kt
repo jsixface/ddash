@@ -9,11 +9,11 @@ data class DockerEvent(
     @SerialName("Action") val action: String,
     @SerialName("Actor") val actor: DockerActor,
     @SerialName("time") val time: Long,
-    @SerialName("timeNano") val timeNano: Long
+    @SerialName("timeNano") val timeNano: Long,
 )
 
 @Serializable
 data class DockerActor(
     @SerialName("ID") val id: String,
-    @SerialName("Attributes") val attributes: Map<String, String> = emptyMap()
+    @SerialName("Attributes") val attributes: Map<String, String> = emptyMap(),
 )

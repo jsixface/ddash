@@ -22,8 +22,8 @@ dependencies:
   - $libs.kotlinx.io
 
 test-dependencies:
-    - $kotlin.test
-    - $ktor.server.testHost
+  - $kotlin.test
+  - $ktor.server.testHost
 
 settings:
   kotlin:

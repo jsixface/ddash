@@ -17,7 +17,7 @@ class DockerAppService(private val apiClient: DockerApiClient) {
             logger.d { "Fetching containers from Docker API" }
             val containers = apiClient.listContainers()
             logger.i { "Found ${containers.size} containers" }
-            containers.mapIndexedNotNull {  index, container ->
+            containers.mapIndexedNotNull { index, container ->
                 mapToAppData(index, container)
             }
         } catch (e: Exception) {

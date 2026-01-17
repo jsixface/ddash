@@ -25,7 +25,7 @@ class StaticRoutingTest {
         }
         val indexFile = Path(testRootDir, "index.html")
         SystemFileSystem.sink(indexFile).buffered().use { it.writeString("Index Content") }
-        
+
         val subDir = Path(testRootDir, "sub")
         SystemFileSystem.createDirectories(subDir)
         val subIndexFile = Path(subDir, "index.html")
@@ -49,7 +49,7 @@ class StaticRoutingTest {
         val response = client.get("/")
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("Index Content", response.bodyAsText())
-        
+
         val responseExplicit = client.get("/index.html")
         assertEquals(HttpStatusCode.OK, responseExplicit.status)
         assertEquals("Index Content", responseExplicit.bodyAsText())
