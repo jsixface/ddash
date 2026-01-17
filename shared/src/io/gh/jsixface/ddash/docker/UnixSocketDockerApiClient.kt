@@ -40,6 +40,13 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
                 requestTimeoutMillis = Long.MAX_VALUE
                 socketTimeoutMillis = Long.MAX_VALUE
             }
+            url {
+                parameters.append(
+                    "filters", """
+                    {"type":["container"],"event":["start","die","stop","destroy","rename","update"]}
+                """.trim()
+                )
+            }
         }.execute { response ->
             val channel: ByteReadChannel = response.body()
             while (!channel.isClosedForRead) {

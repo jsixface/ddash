@@ -1,3 +1,4 @@
 localhost:80 {
-	respond "Hello, world!"
+	root * /config
+	file_server
 }

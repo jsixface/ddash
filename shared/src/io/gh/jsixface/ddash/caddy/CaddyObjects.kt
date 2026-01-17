@@ -38,6 +38,11 @@ sealed class CaddyHandler {
     data class ReverseProxy(val upstreams: List<CaddyUpstream>) : CaddyHandler()
 
     @Serializable
+    @SerialName("file_server")
+    data class FileServer(val root: String? = null) : CaddyHandler() {
+    }
+
+    @Serializable
     @SerialName("encode")
     data class Encode(
         val encodings: JsonObject,
