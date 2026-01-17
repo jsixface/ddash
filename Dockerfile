@@ -7,6 +7,7 @@ WORKDIR /app
 COPY bin/linux-cli.kexe /app/ddash
 COPY web/dist /app/web/dist
 
+RUN chmod +x /app/ddash
 EXPOSE 8080
 
 LABEL ddash.enable="true" \
