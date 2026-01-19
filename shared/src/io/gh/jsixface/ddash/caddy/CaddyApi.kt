@@ -2,6 +2,7 @@ package io.gh.jsixface.ddash.caddy
 
 import co.touchlab.kermit.Logger
 import io.gh.jsixface.ddash.ClientFactory
+import io.gh.jsixface.ddash.Globals
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -32,9 +33,9 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
 
     override suspend fun getRoutes(): List<String> {
         return try {
-            val servers: CaddyServers = client.get("/config/apps/http").body()
-            logger.d { "Found ${servers.servers.size} servers" }
-            val routes = servers.servers.values
+            val servers: Map<String, CaddyServer> = client.get("/config/apps/http/servers").body()
+            logger.d { "Found ${servers.size} servers" }
+            val routes = servers.values
                 .flatMap { it.routes }
                 .flatMap { it.match?.map { m -> m.host } ?: emptyList() }
                 .flatten()
@@ -48,21 +49,28 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
 
     override suspend fun addRoute(host: String, upstream: String) {
         logger.i { "Adding route for $host -> $upstream" }
-        // We assume 'srv0' exists or we create it. For simplicity, let's try to add to 'srv0'
-        // Caddy API allows POST to /config/apps/http/servers/srv0/routes
+        val targetServer = try {
+            val servers: Map<String, CaddyServer> = client.get("/config/apps/http/servers").body()
+            val useSecure = Globals.settings.caddySecureRouting
+            val targetPort = if (useSecure) ":443" else ":80"
+            val serverId = servers.entries.find { it.value.listen.contains(targetPort) }?.key ?: "srv0"
+            logger.d { "Target server for port $targetPort is $serverId (secure: $useSecure)" }
+            serverId
+        } catch (e: Exception) {
+            logger.e(e) { "Error determining target server, defaulting to srv0" }
+            "srv0"
+        }
+
         val route = CaddyRoute(
             match = listOf(CaddyMatcher(host = listOf(host))),
             handle = listOf(CaddyHandler.ReverseProxy(listOf(CaddyUpstream(upstream))))
         )
         try {
-            client.post("/config/apps/http/servers/srv0/routes") {
+            client.post("/config/apps/http/servers/$targetServer/routes") {
                 contentType(ContentType.Application.Json)
                 setBody(route)
             }
         } catch (e: Exception) {
-            // If srv0 doesn't exist, we might need to create it first.
-            // But usually Caddy has srv0 if it's configured.
-            // A more robust way would be to check servers first.
             logger.e(e) { "Error adding route to Caddy" }
         }
     }
