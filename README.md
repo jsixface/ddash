@@ -9,8 +9,9 @@ DDash is a lightweight, self-hosted dashboard and automatic reverse-proxy manage
 - **Centralized Dashboard**: Provides a clean web interface to view all your running applications, their status, and easy access via their configured routes.
 - **Label-based Configuration**: Control everything through standard Docker labels—no need for complex configuration files.
 - **Categorization**: Organize your apps into categories for a better overview.
-- **Custom Icons**: Personalize your dashboard with custom icons for each application.
-
+- **Custom Icons**: Personalize your dashboard with custom icons for each application. Choose one
+  from [Lucide](https://lucide.dev/icons/). (You have to copy the React Component name for the icon. Press the arrow
+  near "Copy JSX" and choose "Copy Component Name")
 ## How it Works
 
 DDash connects to both the Docker socket and the Caddy Admin API. 
@@ -86,14 +87,14 @@ volumes:
 
 Configure your applications by adding these labels to your containers:
 
-| Label | Description | Required |
-|-------|-------------|----------|
-| `ddash.enable` | Set to `true` to show in dashboard and manage routing | Yes |
-| `ddash.route` | The hostname for the application (e.g., `app.example.com`) | Yes |
-| `ddash.name` | Display name in the dashboard | No (defaults to container name) |
-| `ddash.category` | Grouping category in the dashboard | No (defaults to "Uncategorized") |
-| `ddash.icon` | Icon name (supports Lucide icons) | No (defaults to "LayoutGrid") |
-| `ddash.port` | The internal container port to proxy to | No (defaults to first exposed port or 80) |
+| Label            | Description                                                | Required                         |
+|------------------|------------------------------------------------------------|----------------------------------|
+| `ddash.enable`   | Set to `true` to show in dashboard and manage routing      | Yes                              |
+| `ddash.route`    | The hostname for the application (e.g., `app.example.com`) | Yes                              |
+| `ddash.name`     | Display name in the dashboard                              | No (defaults to container name)  |
+| `ddash.category` | Grouping category in the dashboard                         | No (defaults to "Uncategorized") |
+| `ddash.icon`     | Icon name (supports Lucide icons)                          | No (defaults to "LayoutGrid")    |
+| `ddash.port`     | The internal container port to proxy to                    | see below                        |
 
 ### Network Modes
 
@@ -103,9 +104,8 @@ DDash handles different Docker network modes to ensure correct routing:
   in `ddash.port` or the first exposed port.
 - **Host Network Mode (`network_mode: host`)**: DDash routes to `host.docker.internal` using the port specified in the
   `ddash.port` label. **The `ddash.port` label is required for this mode.**
-- **Attached Network Mode (`network_mode: service:name` or `container:id`)**: DDash routes to the target
-  container/service name using the port specified in the `ddash.port` label. If a container ID is used in the network
-  mode, DDash attempts to resolve it to the container's name for more reliable routing. **The `ddash.port` label is
+- **Attached Network Mode (`network_mode: service:name`)**: DDash routes to the target
+  container/service name using the port specified in the `ddash.port` label. **The `ddash.port` label is
   required for this mode.**
 
 For both Host and Attached network modes, DDash skips automatic port discovery to avoid incorrect routing.
