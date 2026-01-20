@@ -15,13 +15,7 @@ class RouteManager(
     private val settings = Globals.settings
 
     suspend fun processContainers() {
-        val containers = try {
-            dockerClient.listContainers()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            logger.e(e) { "Failed to list containers" }
-            return
-        }
+        val containers = fetchContainers() ?: return
 
         val appsToRoute = containers.filter { container ->
             container.labels[DashLabels.Enable.label]?.toBoolean() == true &&
@@ -33,34 +27,14 @@ class RouteManager(
             return
         }
 
-        val currentRoutes = try {
-            caddyApi.getRoutes()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            logger.e(e) { "Error fetching current routes from Caddy" }
-            emptyList()
-        }
+        val currentRoutes = fetchCurrentRoutes()
         var changed = false
 
         appsToRoute.forEach { container ->
             val host = container.labels[DashLabels.Route.label]!!
             logger.d { "Checking container --- ${container.names}, ${container.image}, ${container.ports}" }
             if (!currentRoutes.contains(host)) {
-                val containerName = container.names.firstOrNull()?.removePrefix("/") ?: container.id
-                val isDdash = container.labels[DashLabels.Name.label] == "D-Dash" ||
-                    container.image.contains("ddash", ignoreCase = true)
-
-                val upstream = if (isDdash) {
-                    "localhost:${settings.port}"
-                } else {
-                    val port = getContainerPort(container)
-                    if (port == null) {
-                        logger.e { "Could not determine port for container $containerName. Skipping route." }
-                        return@forEach
-                    }
-                    "$containerName:$port"
-                }
-
+                val upstream = getUpstream(container, containers) ?: return@forEach
                 caddyApi.addRoute(host, upstream)
                 changed = true
             } else {
@@ -71,6 +45,71 @@ class RouteManager(
         if (changed && settings.caddyAutoSaveConfig) {
             caddyApi.saveConfig()
         }
+    }
+
+    private suspend fun fetchContainers(): List<DockerContainer>? {
+        return try {
+            dockerClient.listContainers()
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            logger.e(e) { "Failed to list containers" }
+            null
+        }
+    }
+
+    private suspend fun fetchCurrentRoutes(): List<String> {
+        return try {
+            caddyApi.getRoutes()
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            logger.e(e) { "Error fetching current routes from Caddy" }
+            emptyList()
+        }
+    }
+
+    private fun getUpstream(container: DockerContainer, allContainers: List<DockerContainer>): String? {
+        val containerName = container.names.firstOrNull()?.removePrefix("/") ?: container.id
+        val isDdash = container.labels[DashLabels.Name.label] == "D-Dash" ||
+            container.image.contains("ddash", ignoreCase = true)
+
+        if (isDdash) {
+            return "localhost:${settings.port}"
+        }
+
+        val networkMode = container.hostConfig?.networkMode
+        val (finalHost, finalPort) = when {
+            networkMode == "host" -> {
+                val port = container.labels[DashLabels.Port.label]
+                if (port == null) {
+                    logger.e { "Network mode is 'host' but no ddash.port label found for $containerName. Skipping." }
+                    return null
+                }
+                "host.docker.internal" to port
+            }
+
+            networkMode?.startsWith("container:") == true -> {
+                val target = networkMode.removePrefix("container:")
+                val targetContainerName = allContainers.find { it.id == target || it.id.startsWith(target) }
+                    ?.names?.firstOrNull()?.removePrefix("/") ?: target
+
+                val port = container.labels[DashLabels.Port.label]
+                if (port == null) {
+                    logger.e { "Network mode is attached to '$target' but no ddash.port label found for $containerName. Skipping." }
+                    return null
+                }
+                targetContainerName to port
+            }
+
+            else -> {
+                val port = getContainerPort(container)
+                if (port == null) {
+                    logger.e { "Could not determine port for container $containerName. Skipping route." }
+                    return null
+                }
+                containerName to port
+            }
+        }
+        return "$finalHost:$finalPort"
     }
 
     private fun getContainerPort(container: DockerContainer): String? {

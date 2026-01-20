@@ -46,7 +46,7 @@ services:
       - caddy_config:/config
 
   ddash:
-    image: ghcr.io/jsixface/d-dash:latest
+      image: ghcr.io/jsixface/ddash:latest
     container_name: ddash
     restart: unless-stopped
     network_mode: "service:caddy"
@@ -94,6 +94,21 @@ Configure your applications by adding these labels to your containers:
 | `ddash.category` | Grouping category in the dashboard | No (defaults to "Uncategorized") |
 | `ddash.icon` | Icon name (supports Lucide icons) | No (defaults to "LayoutGrid") |
 | `ddash.port` | The internal container port to proxy to | No (defaults to first exposed port or 80) |
+
+### Network Modes
+
+DDash handles different Docker network modes to ensure correct routing:
+
+- **Normal Network (Bridge/User-defined)**: DDash routes to the container using its name and either the port specified
+  in `ddash.port` or the first exposed port.
+- **Host Network Mode (`network_mode: host`)**: DDash routes to `host.docker.internal` using the port specified in the
+  `ddash.port` label. **The `ddash.port` label is required for this mode.**
+- **Attached Network Mode (`network_mode: service:name` or `container:id`)**: DDash routes to the target
+  container/service name using the port specified in the `ddash.port` label. If a container ID is used in the network
+  mode, DDash attempts to resolve it to the container's name for more reliable routing. **The `ddash.port` label is
+  required for this mode.**
+
+For both Host and Attached network modes, DDash skips automatic port discovery to avoid incorrect routing.
 
 ## Example: Adding a new app
 

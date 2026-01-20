@@ -12,11 +12,17 @@ data class DockerContainer(
     @SerialName("Status") val status: String,
     @SerialName("Ports") val ports: List<DockerPort>? = null,
     @SerialName("Labels") val labels: Map<String, String> = emptyMap(),
+    @SerialName("HostConfig") val hostConfig: HostConfig? = null,
 ) {
     override fun toString(): String {
         return "Container($names: $image ($state/$status)"
     }
 }
+
+@Serializable
+data class HostConfig(
+    @SerialName("NetworkMode") val networkMode: String? = null,
+)
 
 @Serializable
 data class DockerPort(
