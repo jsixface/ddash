@@ -10,6 +10,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.CancellationException
 
 interface CaddyApi {
     suspend fun checkConnectivity(): Boolean
@@ -26,6 +27,7 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
         return try {
             client.get("/config/").status.value in 200..299
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             logger.e(e) { "Caddy connectivity check failed" }
             false
         }
@@ -42,6 +44,7 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
             logger.d { "Found routes = $routes" }
             routes
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             logger.e(e) { "Error fetching routes from Caddy" }
             emptyList()
         }
@@ -57,6 +60,7 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
             logger.d { "Target server for port $targetPort is $serverId (secure: $useSecure)" }
             serverId
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             logger.e(e) { "Error determining target server, defaulting to srv0" }
             "srv0"
         }
@@ -71,6 +75,7 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
                 setBody(route)
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             logger.e(e) { "Error adding route to Caddy" }
         }
     }
@@ -80,6 +85,7 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
         try {
             client.post("/admin/config/save")
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             logger.e(e) { "Error saving Caddy configuration" }
         }
     }

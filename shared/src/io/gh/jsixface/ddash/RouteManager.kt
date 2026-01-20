@@ -5,10 +5,11 @@ import io.gh.jsixface.ddash.caddy.CaddyApi
 import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
 import io.gh.jsixface.ddash.docker.def.DockerContainer
+import kotlinx.coroutines.CancellationException
 
 class RouteManager(
     private val dockerClient: DockerApiClient,
-    private val caddyApi: CaddyApi
+    private val caddyApi: CaddyApi,
 ) {
     private val logger = Logger.withTag("RouteManager")
     private val settings = Globals.settings
@@ -17,6 +18,7 @@ class RouteManager(
         val containers = try {
             dockerClient.listContainers()
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             logger.e(e) { "Failed to list containers" }
             return
         }
@@ -31,7 +33,13 @@ class RouteManager(
             return
         }
 
-        val currentRoutes = caddyApi.getRoutes()
+        val currentRoutes = try {
+            caddyApi.getRoutes()
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            logger.e(e) { "Error fetching current routes from Caddy" }
+            emptyList()
+        }
         var changed = false
 
         appsToRoute.forEach { container ->
@@ -69,17 +77,17 @@ class RouteManager(
         val labelPort = container.labels[DashLabels.Port.label]
         if (labelPort != null) return labelPort
 
-        val ports = container.ports ?: emptyList()
+        val ports = container.ports?.map { it.privatePort }?.toSet() ?: emptySet()
         if (ports.isEmpty()) {
             logger.e { "No ports exposed and no ddash.port label found for container ${container.names}" }
             return null
         }
 
         if (ports.size > 1) {
-            logger.e { "Multiple ports exposed and no ddash.port label found for container ${container.names}. Ports: ${ports.map { it.privatePort }}" }
+            logger.e { "Multiple ports exposed and no ddash.port label found for container ${container.names}. Ports: $ports" }
             return null
         }
 
-        return ports.first().privatePort.toString()
+        return ports.first().toString()
     }
 }
