@@ -19,7 +19,7 @@ class DockerAppService(private val apiClient: DockerApiClient) {
             logger.i { "Found ${containers.size} containers" }
             containers.mapIndexedNotNull { index, container ->
                 mapToAppData(index, container)
-            }
+            }.sortedBy { it.category }
         } catch (e: Exception) {
             logger.e(e) { "Error fetching data from Docker API" }
             emptyList()
