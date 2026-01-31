@@ -89,24 +89,38 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
                 parameters.append("timestamps", timestamps.toString())
             }
         }.execute { response ->
+            val contentType = response.headers["Content-Type"]
+            val isRawStream = contentType == "application/vnd.docker.raw-stream"
+
             val channel: ByteReadChannel = response.body()
-            while (!channel.isClosedForRead) {
-                val header = ByteArray(8)
-                try {
-                    channel.readFully(header)
-                } catch (e: Exception) {
-                    break
+            if (isRawStream) {
+                while (!channel.isClosedForRead) {
+                    val line = channel.readUTF8Line() ?: break
+                    emit(line + "\n")
                 }
+            } else {
+                while (!channel.isClosedForRead) {
+                    val header = ByteArray(8)
+                    try {
+                        channel.readFully(header)
+                        val streamType = header[0].toInt()
+                        val size = ((header[4].toInt() and 0xFF) shl 24) or
+                            ((header[5].toInt() and 0xFF) shl 16) or
+                            ((header[6].toInt() and 0xFF) shl 8) or
+                            (header[7].toInt() and 0xFF)
 
-                val size = ((header[4].toInt() and 0xFF) shl 24) or
-                    ((header[5].toInt() and 0xFF) shl 16) or
-                    ((header[6].toInt() and 0xFF) shl 8) or
-                    (header[7].toInt() and 0xFF)
-
-                if (size > 0) {
-                    val payload = ByteArray(size)
-                    channel.readFully(payload)
-                    emit(payload.decodeToString())
+                        if (size > 0) {
+                            val payload = ByteArray(size)
+                            channel.readFully(payload)
+                            emit(payload.decodeToString())
+                        } else if (size < 0) {
+                            logger.w { "Negative payload size: $size. Something is wrong with the stream." }
+                            break
+                        }
+                    } catch (e: Exception) {
+                        logger.e(e) { "Error reading payload" }
+                        break
+                    }
                 }
             }
         }

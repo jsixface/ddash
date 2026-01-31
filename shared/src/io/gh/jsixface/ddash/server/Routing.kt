@@ -1,5 +1,6 @@
 package io.gh.jsixface.ddash.server
 
+import co.touchlab.kermit.Logger
 import io.gh.jsixface.ddash.ClientFactory
 import io.gh.jsixface.ddash.api.DockerAppService
 import io.gh.jsixface.ddash.docker.UnixSocketDockerApiClient
@@ -15,6 +16,7 @@ import io.ktor.server.routing.routing
 import io.ktor.utils.io.writeStringUtf8
 
 fun Application.configureRouting() {
+    val logger = Logger.withTag("Routing")
     val dockerClient = ClientFactory.getDockerClient()
     val apiClient = UnixSocketDockerApiClient(dockerClient)
     val dockerAppService = DockerAppService(apiClient)
@@ -33,8 +35,13 @@ fun Application.configureRouting() {
             val timestamps = call.request.queryParameters["timestamps"]?.toBoolean() ?: false
 
             call.respondBytesWriter(contentType = ContentType.Text.Plain) {
-                dockerAppService.getLogs(id, timestamps).collect { line ->
-                    writeStringUtf8(line)
+                try {
+                    dockerAppService.getLogs(id, timestamps).collect { line ->
+                        writeStringUtf8(line)
+                        flush()
+                    }
+                } catch (e: Exception) {
+                    logger.e(e) { "Error streaming logs for $id" }
                 }
             }
         }

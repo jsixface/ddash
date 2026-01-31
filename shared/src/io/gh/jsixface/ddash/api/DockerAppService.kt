@@ -14,7 +14,6 @@ class DockerAppService(private val apiClient: DockerApiClient) {
     // Extract the label metadata from containers and convert to AppData
     suspend fun getAppData(): List<AppData> {
         return try {
-            logger.d { "Fetching containers from Docker API" }
             val containers = apiClient.listContainers()
             logger.i { "Found ${containers.size} containers" }
             containers.mapNotNull { container ->
@@ -54,6 +53,7 @@ class DockerAppService(private val apiClient: DockerApiClient) {
     }
 
     fun getLogs(id: String, timestamps: Boolean): kotlinx.coroutines.flow.Flow<String> {
+        logger.i { "Fetching logs for container $id" }
         return apiClient.containerLogs(id, tail = 100, follow = true, timestamps = timestamps)
     }
 
