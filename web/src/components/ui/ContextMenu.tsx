@@ -12,6 +12,9 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ children, menuItems, i
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const menuRef = useRef<HTMLDivElement>(null);
 
+    const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isLongPress = useRef(false);
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -28,8 +31,49 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ children, menuItems, i
         setPosition({ x: e.clientX, y: e.clientY });
     };
 
+    const handleTouchStart = (e: React.TouchEvent) => {
+        isLongPress.current = false;
+        const touch = e.touches[0];
+        const pos = { x: touch.clientX, y: touch.clientY };
+
+        longPressTimer.current = setTimeout(() => {
+            isLongPress.current = true;
+            setVisible(true);
+            setPosition(pos);
+            if ('vibrate' in navigator) navigator.vibrate(50);
+        }, 500);
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
+        if (isLongPress.current) {
+            // Prevent the subsequent click event
+            e.preventDefault();
+        }
+    };
+
     return (
-        <div onContextMenu={handleContextMenu}>
+        <div
+            onContextMenu={handleContextMenu}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={() => {
+                if (longPressTimer.current) {
+                    clearTimeout(longPressTimer.current);
+                    longPressTimer.current = null;
+                }
+            }}
+            onClickCapture={(e) => {
+                if (isLongPress.current) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    isLongPress.current = false;
+                }
+            }}
+        >
             {children}
             {visible && (
                 <div

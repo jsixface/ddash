@@ -15,13 +15,21 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
 
     useEffect(() => {
         if (isOpen) {
-            setTimeout(() => inputRef.current?.focus(), 50);
+            // Use a short delay to ensure the component is fully rendered and animations starting
+            const timeout = setTimeout(() => {
+                inputRef.current?.focus();
+                // For mobile Safari, sometimes a second focus attempt helps
+                inputRef.current?.click();
+            }, 10);
             document.body.style.overflow = 'hidden';
+            return () => {
+                clearTimeout(timeout);
+                document.body.style.overflow = 'unset';
+            };
         } else {
             document.body.style.overflow = 'unset';
             setQuery("");
         }
-        return () => { document.body.style.overflow = 'unset'; };
     }, [isOpen]);
 
     useEffect(() => {
@@ -58,6 +66,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                     <input
                         ref={inputRef}
                         type="text"
+                        autoFocus
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search apps..."
