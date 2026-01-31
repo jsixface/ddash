@@ -24,4 +24,6 @@ interface DockerApiClient {
     suspend fun stopContainer(containerId: String)
 
     suspend fun restartContainer(containerId: String)
+
+    suspend fun startContainer(containerId: String)
 }

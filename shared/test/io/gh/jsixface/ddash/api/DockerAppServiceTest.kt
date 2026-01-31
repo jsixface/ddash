@@ -27,6 +27,7 @@ class DockerAppServiceTest {
 
         override suspend fun stopContainer(containerId: String) {}
         override suspend fun restartContainer(containerId: String) {}
+        override suspend fun startContainer(containerId: String) {}
     }
 
     @Test

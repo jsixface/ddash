@@ -25,7 +25,11 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
 
     override suspend fun listImages(): List<DockerImage> = client.get("/images/json").body()
 
-    override suspend fun listContainers(): List<DockerContainer> = client.get("/containers/json").body()
+    override suspend fun listContainers(): List<DockerContainer> = client.get("/containers/json") {
+        url {
+            parameters.append("all", "true")
+        }
+    }.body()
 
     override suspend fun ping(): Boolean {
         return try {
@@ -109,14 +113,14 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
     }
 
     override suspend fun stopContainer(containerId: String) {
-        client.post("/containers/$containerId/stop") {
-            unixSocket(Globals.settings.dockerSocket)
-        }
+        client.post("/containers/$containerId/stop")
     }
 
     override suspend fun restartContainer(containerId: String) {
-        client.post("/containers/$containerId/restart") {
-            unixSocket(Globals.settings.dockerSocket)
-        }
+        client.post("/containers/$containerId/restart")
+    }
+
+    override suspend fun startContainer(containerId: String) {
+        client.post("/containers/$containerId/start")
     }
 }

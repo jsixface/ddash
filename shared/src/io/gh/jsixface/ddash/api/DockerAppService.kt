@@ -74,4 +74,13 @@ class DockerAppService(private val apiClient: DockerApiClient) {
             logger.e(e) { "Error restarting container $id" }
         }
     }
+
+    suspend fun start(id: String) {
+        try {
+            logger.i { "Starting container $id" }
+            apiClient.startContainer(id)
+        } catch (e: Exception) {
+            logger.e(e) { "Error starting container $id" }
+        }
+    }
 }

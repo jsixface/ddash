@@ -50,5 +50,11 @@ fun Application.configureRouting() {
             dockerAppService.restart(id)
             call.respond(HttpStatusCode.OK)
         }
+
+        post("/api/app/{id}/start") {
+            val id = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+            dockerAppService.start(id)
+            call.respond(HttpStatusCode.OK)
+        }
     }
 }
