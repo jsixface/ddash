@@ -56,4 +56,22 @@ class DockerAppService(private val apiClient: DockerApiClient) {
     fun getLogs(id: String, timestamps: Boolean): kotlinx.coroutines.flow.Flow<String> {
         return apiClient.containerLogs(id, tail = 100, follow = true, timestamps = timestamps)
     }
+
+    suspend fun stop(id: String) {
+        try {
+            logger.i { "Stopping container $id" }
+            apiClient.stopContainer(id)
+        } catch (e: Exception) {
+            logger.e(e) { "Error stopping container $id" }
+        }
+    }
+
+    suspend fun restart(id: String) {
+        try {
+            logger.i { "Restarting container $id" }
+            apiClient.restartContainer(id)
+        } catch (e: Exception) {
+            logger.e(e) { "Error restarting container $id" }
+        }
+    }
 }

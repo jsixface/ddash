@@ -8,9 +8,10 @@ interface AppCardProps {
     app: AppData;
     isDark: boolean;
     onViewLogs: (app: AppData) => void;
+    onActionSuccess?: () => void;
 }
 
-export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs }) => {
+export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onActionSuccess }) => {
     const Icon = app.icon;
 
     const handleLaunch = () => {
@@ -19,11 +20,29 @@ export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs }) => 
         }
     };
 
+    const handleRestart = async () => {
+        try {
+            const res = await fetch(`/api/app/${app.id}/restart`, { method: 'POST' });
+            if (res.ok) onActionSuccess?.();
+        } catch (err) {
+            console.error('Failed to restart app:', err);
+        }
+    };
+
+    const handleStop = async () => {
+        try {
+            const res = await fetch(`/api/app/${app.id}/stop`, { method: 'POST' });
+            if (res.ok) onActionSuccess?.();
+        } catch (err) {
+            console.error('Failed to stop app:', err);
+        }
+    };
+
     const menuItems: MenuItem[] = [
         { label: "Launch App", icon: ExternalLink, action: handleLaunch },
         { label: "View Logs", icon: FileText, action: () => onViewLogs(app) },
-        { label: "Restart Container", icon: RefreshCw, action: () => console.log("Restart") },
-        { label: "Stop Service", icon: Power, action: () => console.log("Stop"), variant: 'danger' },
+        { label: "Restart Service", icon: RefreshCw, action: handleRestart },
+        { label: "Stop Service", icon: Power, action: handleStop, variant: 'danger' },
     ];
 
     return (

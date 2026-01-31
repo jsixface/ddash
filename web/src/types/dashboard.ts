@@ -19,8 +19,4 @@ export interface MenuItem {
     variant?: 'default' | 'danger';
 }
 
-export interface ServerStats {
-    cpu: string;
-    ram: string;
-    temp: string;
-}
+

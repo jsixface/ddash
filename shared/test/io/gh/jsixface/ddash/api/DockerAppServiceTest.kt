@@ -18,6 +18,15 @@ class DockerAppServiceTest {
         override suspend fun listContainers(): List<DockerContainer> = containers
         override suspend fun ping(): Boolean = true
         override fun events(): Flow<DockerEvent> = emptyFlow()
+        override fun containerLogs(
+            containerId: String,
+            tail: Int,
+            follow: Boolean,
+            timestamps: Boolean,
+        ): Flow<String> = emptyFlow()
+
+        override suspend fun stopContainer(containerId: String) {}
+        override suspend fun restartContainer(containerId: String) {}
     }
 
     @Test

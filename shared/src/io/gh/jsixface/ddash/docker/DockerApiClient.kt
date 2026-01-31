@@ -20,4 +20,8 @@ interface DockerApiClient {
         follow: Boolean = true,
         timestamps: Boolean = false,
     ): Flow<String>
+
+    suspend fun stopContainer(containerId: String)
+
+    suspend fun restartContainer(containerId: String)
 }

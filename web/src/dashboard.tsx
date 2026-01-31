@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import * as Icons from 'lucide-react';
 
 // --- Types ---
-import type { AppData, ServerStats } from './types/dashboard';
+import type { AppData } from './types/dashboard';
 
 // --- Mock Data ---
 import { INITIAL_APPS } from './data/mockApps';
@@ -19,11 +19,11 @@ export default function NexusDashboard() {
     const [selectedAppForLogs, setSelectedAppForLogs] = useState<AppData | null>(null);
     const [isDark, setIsDark] = useState(false);
     const [time, setTime] = useState(new Date());
-    const [stats, setStats] = useState<ServerStats>({ cpu: "12", ram: "42", temp: "45" });
+
     const isMock = import.meta.env.MODE === 'development';
     const [apps, setApps] = useState<AppData[]>(isMock ? INITIAL_APPS : []);
 
-    useEffect(() => {
+    const fetchApps = () => {
         if (!isMock) {
             fetch('/api/apps')
                 .then(res => res.json())
@@ -36,6 +36,10 @@ export default function NexusDashboard() {
                 })
                 .catch(err => console.error('Failed to fetch apps:', err));
         }
+    };
+
+    useEffect(() => {
+        fetchApps();
     }, []);
 
     // Clock Ticker
@@ -56,47 +60,7 @@ export default function NexusDashboard() {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // Server Stats Logic (SSE in Production/Local, Simulated in Dev)
-    useEffect(() => {
-        if (isMock) {
-            const statTimer = setInterval(() => {
-                setStats(prev => ({
-                    cpu: Math.min(100, Math.max(5, parseFloat(prev.cpu) + (Math.random() * 10 - 5))).toFixed(0),
-                    ram: Math.min(100, Math.max(20, parseFloat(prev.ram) + (Math.random() * 5 - 2.5))).toFixed(0),
-                    temp: Math.min(90, Math.max(30, parseFloat(prev.temp) + (Math.random() * 4 - 2))).toFixed(0),
-                }));
-            }, 2000);
-            return () => clearInterval(statTimer);
-        } else {
-            const eventSource = new EventSource('/api/stats');
 
-            eventSource.onmessage = (event) => {
-                try {
-                    const newStats = JSON.parse(event.data);
-                    // Ensure values are strings as per ServerStats interface
-                    setStats({
-                        cpu: String(newStats.cpu),
-                        ram: String(newStats.ram),
-                        temp: String(newStats.temp)
-                    });
-                } catch (err) {
-                    console.error('Failed to parse SSE data:', err);
-                }
-            };
-
-            eventSource.onerror = (err) => {
-                console.error('SSE connection error:', err);
-                // Attempt to reconnect after 5 seconds
-                setTimeout(() => {
-                    // This will trigger a re-render if we were to use a state for connection status,
-                    // but since useEffect will only run once, we might want to handle reconnection differently
-                    // if EventSource doesn't auto-reconnect (it usually does).
-                }, 5000);
-            };
-
-            return () => eventSource.close();
-        }
-    }, []);
 
     // Group Apps for Display
     const groupedApps = useMemo(() => {
@@ -145,7 +109,6 @@ export default function NexusDashboard() {
 
                 <DashboardHeader
                     time={time}
-                    stats={stats}
                     isDark={isDark}
                 />
 
@@ -173,6 +136,7 @@ export default function NexusDashboard() {
                                         app={app}
                                         isDark={isDark}
                                         onViewLogs={(app) => setSelectedAppForLogs(app)}
+                                        onActionSuccess={fetchApps}
                                     />
                                 ))}
                             </div>

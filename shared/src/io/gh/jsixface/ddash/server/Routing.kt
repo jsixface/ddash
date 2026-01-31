@@ -10,6 +10,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondTextWriter
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
@@ -36,6 +37,18 @@ fun Application.configureRouting() {
                     flush()
                 }
             }
+        }
+
+        post("/api/app/{id}/stop") {
+            val id = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+            dockerAppService.stop(id)
+            call.respond(HttpStatusCode.OK)
+        }
+
+        post("/api/app/{id}/restart") {
+            val id = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+            dockerAppService.restart(id)
+            call.respond(HttpStatusCode.OK)
         }
     }
 }
