@@ -12,6 +12,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.prepareGet
 import io.ktor.client.request.unixSocket
 import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.readFully
 import io.ktor.utils.io.readUTF8Line
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -58,6 +59,49 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
                     } catch (e: Exception) {
                         logger.e { "Error decoding Docker event: $line. Reason: ${e.message}" }
                     }
+                }
+            }
+        }
+    }
+
+    override fun containerLogs(
+        containerId: String,
+        tail: Int,
+        follow: Boolean,
+        timestamps: Boolean,
+    ): Flow<String> = flow {
+        client.prepareGet("/containers/$containerId/logs") {
+            unixSocket(Globals.settings.dockerSocket)
+            timeout {
+                requestTimeoutMillis = Long.MAX_VALUE
+                socketTimeoutMillis = Long.MAX_VALUE
+            }
+            url {
+                parameters.append("stdout", "true")
+                parameters.append("stderr", "true")
+                parameters.append("follow", follow.toString())
+                parameters.append("tail", tail.toString())
+                parameters.append("timestamps", timestamps.toString())
+            }
+        }.execute { response ->
+            val channel: ByteReadChannel = response.body()
+            while (!channel.isClosedForRead) {
+                val header = ByteArray(8)
+                try {
+                    channel.readFully(header)
+                } catch (e: Exception) {
+                    break
+                }
+
+                val size = ((header[4].toInt() and 0xFF) shl 24) or
+                    ((header[5].toInt() and 0xFF) shl 16) or
+                    ((header[6].toInt() and 0xFF) shl 8) or
+                    (header[7].toInt() and 0xFF)
+
+                if (size > 0) {
+                    val payload = ByteArray(size)
+                    channel.readFully(payload)
+                    emit(payload.decodeToString())
                 }
             }
         }

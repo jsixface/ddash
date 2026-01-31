@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AppData(
-    val id: Int,
+    val id: String,
     val name: String,
     val url: String,
     val category: String,

@@ -12,16 +12,19 @@ import { CommandPalette } from './components/dashboard/CommandPalette';
 import { AppCard } from './components/dashboard/AppCard';
 import { DashboardHeader } from './components/dashboard/DashboardHeader';
 import { DashboardActionBar } from './components/dashboard/DashboardActionBar';
+import { LogViewer } from './components/dashboard/LogViewer';
 
 export default function NexusDashboard() {
     const [isCommandOpen, setIsCommandOpen] = useState(false);
+    const [selectedAppForLogs, setSelectedAppForLogs] = useState<AppData | null>(null);
     const [isDark, setIsDark] = useState(false);
     const [time, setTime] = useState(new Date());
     const [stats, setStats] = useState<ServerStats>({ cpu: "12", ram: "42", temp: "45" });
-    const [apps, setApps] = useState<AppData[]>(import.meta.env.DEV ? INITIAL_APPS : []);
+    const isMock = import.meta.env.MODE === 'development';
+    const [apps, setApps] = useState<AppData[]>(isMock ? INITIAL_APPS : []);
 
     useEffect(() => {
-        if (!import.meta.env.DEV) {
+        if (!isMock) {
             fetch('/api/apps')
                 .then(res => res.json())
                 .then(data => {
@@ -53,9 +56,9 @@ export default function NexusDashboard() {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // Server Stats Logic (SSE in Production, Simulated in Dev)
+    // Server Stats Logic (SSE in Production/Local, Simulated in Dev)
     useEffect(() => {
-        if (import.meta.env.DEV) {
+        if (isMock) {
             const statTimer = setInterval(() => {
                 setStats(prev => ({
                     cpu: Math.min(100, Math.max(5, parseFloat(prev.cpu) + (Math.random() * 10 - 5))).toFixed(0),
@@ -115,6 +118,13 @@ export default function NexusDashboard() {
                 isDark={isDark}
             />
 
+            <LogViewer
+                app={selectedAppForLogs}
+                isOpen={!!selectedAppForLogs}
+                onClose={() => setSelectedAppForLogs(null)}
+                isDark={isDark}
+            />
+
             {/* Background Ambience */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-700">
                 {isDark ? (
@@ -158,7 +168,12 @@ export default function NexusDashboard() {
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
                                 {apps.map((app) => (
-                                    <AppCard key={app.id} app={app} isDark={isDark} />
+                                    <AppCard
+                                        key={app.id}
+                                        app={app}
+                                        isDark={isDark}
+                                        onViewLogs={(app) => setSelectedAppForLogs(app)}
+                                    />
                                 ))}
                             </div>
                         </section>

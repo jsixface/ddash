@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, FileText, Pin, Power, RefreshCw } from 'lucide-react';
+import { ExternalLink, FileText, Power, RefreshCw } from 'lucide-react';
 import type { AppData, MenuItem } from '../../types/dashboard';
 import { ContextMenu } from '../ui/ContextMenu';
 import { StatusDot } from '../ui/StatusDot';
@@ -7,9 +7,10 @@ import { StatusDot } from '../ui/StatusDot';
 interface AppCardProps {
     app: AppData;
     isDark: boolean;
+    onViewLogs: (app: AppData) => void;
 }
 
-export const AppCard: React.FC<AppCardProps> = ({ app, isDark }) => {
+export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs }) => {
     const Icon = app.icon;
 
     const handleLaunch = () => {
@@ -20,8 +21,7 @@ export const AppCard: React.FC<AppCardProps> = ({ app, isDark }) => {
 
     const menuItems: MenuItem[] = [
         { label: "Launch App", icon: ExternalLink, action: handleLaunch },
-        { label: "Pin to Home", icon: Pin, action: () => console.log("Pin") },
-        { label: "View Logs", icon: FileText, action: () => console.log("Logs") },
+        { label: "View Logs", icon: FileText, action: () => onViewLogs(app) },
         { label: "Restart Container", icon: RefreshCw, action: () => console.log("Restart") },
         { label: "Stop Service", icon: Power, action: () => console.log("Stop"), variant: 'danger' },
     ];

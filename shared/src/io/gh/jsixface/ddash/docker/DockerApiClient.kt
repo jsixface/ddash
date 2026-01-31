@@ -13,4 +13,11 @@ interface DockerApiClient {
     suspend fun ping(): Boolean
 
     fun events(): Flow<DockerEvent>
+
+    fun containerLogs(
+        containerId: String,
+        tail: Int = 100,
+        follow: Boolean = true,
+        timestamps: Boolean = false,
+    ): Flow<String>
 }

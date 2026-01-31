@@ -17,8 +17,8 @@ class DockerAppService(private val apiClient: DockerApiClient) {
             logger.d { "Fetching containers from Docker API" }
             val containers = apiClient.listContainers()
             logger.i { "Found ${containers.size} containers" }
-            containers.mapIndexedNotNull { index, container ->
-                mapToAppData(index, container)
+            containers.mapNotNull { container ->
+                mapToAppData(container)
             }.sortedBy { it.category }
         } catch (e: Exception) {
             logger.e(e) { "Error fetching data from Docker API" }
@@ -26,7 +26,7 @@ class DockerAppService(private val apiClient: DockerApiClient) {
         }
     }
 
-    private fun mapToAppData(index: Int, container: DockerContainer): AppData? {
+    private fun mapToAppData(container: DockerContainer): AppData? {
         val labels = container.labels
         val enabled = labels[DashLabels.Enable.label]?.toBoolean() ?: false
         // If not explicitly enabled, we don't show it on dashboard.
@@ -44,12 +44,16 @@ class DockerAppService(private val apiClient: DockerApiClient) {
         }
 
         return AppData(
-            id = index,
+            id = container.id,
             name = name,
             url = route,
             category = category,
             status = status,
             icon = icon
         )
+    }
+
+    fun getLogs(id: String, timestamps: Boolean): kotlinx.coroutines.flow.Flow<String> {
+        return apiClient.containerLogs(id, tail = 100, follow = true, timestamps = timestamps)
     }
 }
