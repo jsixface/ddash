@@ -8,10 +8,11 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondTextWriter
+import io.ktor.server.response.respondBytesWriter
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import io.ktor.utils.io.writeStringUtf8
 
 fun Application.configureRouting() {
     val dockerClient = ClientFactory.getDockerClient()
@@ -31,10 +32,9 @@ fun Application.configureRouting() {
             val id = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest)
             val timestamps = call.request.queryParameters["timestamps"]?.toBoolean() ?: false
 
-            call.respondTextWriter(contentType = ContentType.Text.Plain) {
+            call.respondBytesWriter(contentType = ContentType.Text.Plain) {
                 dockerAppService.getLogs(id, timestamps).collect { line ->
-                    write(line)
-                    flush()
+                    writeStringUtf8(line)
                 }
             }
         }
