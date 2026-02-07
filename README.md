@@ -2,6 +2,10 @@
 
 DDash is a lightweight, self-hosted dashboard and automatic reverse-proxy manager for Docker containers. It is designed to work seamlessly with [Caddy](https://caddyserver.com/), automatically discovering containers and configuring routes based on Docker labels.
 
+## Screenshots
+
+<img src="docs/ddash-light.png" alt="Dashboard light" width="800">
+
 ## Features
 
 - **Automatic Service Discovery**: Scans your Docker containers and automatically identifies those that should be exposed.
