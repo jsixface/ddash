@@ -16,6 +16,8 @@ DDash is a lightweight, self-hosted dashboard and automatic reverse-proxy manage
 - **Custom Icons**: Personalize your dashboard with custom icons for each application. Choose one
   from [Lucide](https://lucide.dev/icons/). (You have to copy the React Component name for the icon. Press the arrow
   near "Copy JSX" and choose "Copy Component Name")
+- **Clean Container Logs**: Automatically filters out ANSI escape sequences (terminal colors) from Docker logs for
+  better readability in the web UI.
 ## How it Works
 
 DDash connects to both the Docker socket and the Caddy Admin API. 

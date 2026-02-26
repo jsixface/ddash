@@ -5,6 +5,7 @@ import io.gh.jsixface.ddash.Globals
 import io.gh.jsixface.ddash.docker.def.DockerContainer
 import io.gh.jsixface.ddash.docker.def.DockerEvent
 import io.gh.jsixface.ddash.docker.def.DockerImage
+import io.gh.jsixface.ddash.removeAnsiCodes
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.timeout
@@ -96,7 +97,7 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
             if (isRawStream) {
                 while (!channel.isClosedForRead) {
                     val line = channel.readUTF8Line() ?: break
-                    emit(line + "\n")
+                    emit((line + "\n").removeAnsiCodes())
                 }
             } else {
                 while (!channel.isClosedForRead) {
@@ -112,7 +113,7 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
                         if (size > 0) {
                             val payload = ByteArray(size)
                             channel.readFully(payload)
-                            emit(payload.decodeToString())
+                            emit(payload.decodeToString().removeAnsiCodes())
                         } else if (size < 0) {
                             logger.w { "Negative payload size: $size. Something is wrong with the stream." }
                             break
