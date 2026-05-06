@@ -3,6 +3,7 @@ import { ExternalLink, FileText, Play, Power, RefreshCw } from 'lucide-react';
 import type { AppData, MenuItem } from '../../types/dashboard';
 import { ContextMenu } from '../ui/ContextMenu';
 import { StatusDot } from '../ui/StatusDot';
+import { Tooltip } from '../ui/Tooltip';
 
 interface AppCardProps {
     app: AppData;
@@ -10,6 +11,12 @@ interface AppCardProps {
     onViewLogs: (app: AppData) => void;
     onActionSuccess?: () => void;
 }
+
+const AppTitle: React.FC<{ appName: string; isDark: boolean }> = ({ appName, isDark }) => (
+    <h3 className={`text-xs md:text-sm font-semibold text-center line-clamp-1 transition-colors ${isDark ? 'text-slate-200 group-hover:text-white' : 'text-slate-700 group-hover:text-violet-700'}`}>
+        {appName}
+    </h3>
+);
 
 export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onActionSuccess }) => {
     const Icon = app.icon;
@@ -93,9 +100,13 @@ export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onAct
                     <Icon size={24} className={`md:w-8 md:h-8 transition-colors ${isDark ? 'text-slate-200 group-hover:text-indigo-300' : 'text-slate-500 group-hover:text-violet-500'}`} />
                 </div>
 
-                <h3 className={`text-xs md:text-sm font-semibold text-center line-clamp-1 transition-colors ${isDark ? 'text-slate-200 group-hover:text-white' : 'text-slate-700 group-hover:text-violet-700'}`}>
-                    {app.name}
-                </h3>
+                {app.description ? (
+                    <Tooltip content={app.description} isDark={isDark}>
+                        <AppTitle appName={app.name} isDark={isDark} />
+                    </Tooltip>
+                ) : (
+                    <AppTitle appName={app.name} isDark={isDark} />
+                )}
 
                 <div className="mt-1.5 md:mt-2 flex items-center gap-1.5 md:gap-2">
                     <StatusDot status={app.status} />

@@ -10,6 +10,7 @@ data class AppData(
     val category: String,
     val status: AppStatus,
     val icon: String = "LayoutGrid",
+    val description: String? = null,
 )
 
 enum class AppStatus {
