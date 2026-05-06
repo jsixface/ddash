@@ -61,6 +61,28 @@ class DockerAppServiceTest {
     }
 
     @Test
+    fun `test mapping with description label`() = runBlocking {
+        val container = DockerContainer(
+            id = "id4",
+            names = listOf("/container4"),
+            image = "image4",
+            state = "running",
+            status = "Up",
+            labels = mapOf(
+                DashLabels.Enable.label to "true",
+                DashLabels.Description.label to "This is a description"
+            )
+        )
+        val apiClient = MockDockerApiClient(listOf(container))
+        val service = DockerAppService(apiClient)
+
+        val result = service.getAppData()
+
+        assertEquals(1, result.size)
+        assertEquals("This is a description", result[0].description)
+    }
+
+    @Test
     fun `test mapping without labels uses container name`() = runBlocking {
         val container = DockerContainer(
             id = "id2",

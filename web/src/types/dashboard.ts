@@ -10,6 +10,7 @@ export interface AppData {
     icon: LucideIcon;
     status: AppStatus;
     ping: string;
+    description?: string;
 }
 
 export interface MenuItem {
