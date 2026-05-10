@@ -2,7 +2,10 @@ package io.gh.jsixface.ddash.server
 
 import co.touchlab.kermit.Logger
 import io.gh.jsixface.ddash.ClientFactory
+import io.gh.jsixface.ddash.ExternalConfigService
+import io.gh.jsixface.ddash.api.AppService
 import io.gh.jsixface.ddash.api.DockerAppService
+import io.gh.jsixface.ddash.caddy.HttpCaddyApi
 import io.gh.jsixface.ddash.docker.UnixSocketDockerApiClient
 import io.gh.jsixface.ddash.server.static.staticFiles
 import io.ktor.http.ContentType
@@ -20,6 +23,9 @@ fun Application.configureRouting() {
     val dockerClient = ClientFactory.getDockerClient()
     val apiClient = UnixSocketDockerApiClient(dockerClient)
     val dockerAppService = DockerAppService(apiClient)
+    val externalConfigService = ExternalConfigService()
+    val caddyApi = HttpCaddyApi()
+    val appService = AppService(dockerAppService, externalConfigService, caddyApi)
 
     routing {
         staticFiles {
@@ -27,7 +33,7 @@ fun Application.configureRouting() {
         }
 
         get("/api/apps") {
-            call.respond(dockerAppService.getAppData())
+            call.respond(appService.getAllAppData())
         }
 
         get("/api/app/{id}/logs") {

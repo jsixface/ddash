@@ -10,6 +10,7 @@ export const StatusDot: React.FC<{ status: AppStatus }> = ({ status }) => {
         CREATED: "bg-slate-300",
         REMOVING: "bg-slate-300",
         DEAD: "bg-slate-300",
+        EXTERNAL: "bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.4)]",
     };
 
     return (

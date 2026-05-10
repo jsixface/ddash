@@ -6,13 +6,13 @@ import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
 import io.gh.jsixface.ddash.docker.def.DockerContainer
 
-class DockerAppService(private val apiClient: DockerApiClient) {
+open class DockerAppService(private val apiClient: DockerApiClient) {
     private val logger = Logger.withTag("DockerAppService")
     private val settings = Globals.settings
 
     // Get the docker container details through docker sock API.
     // Extract the label metadata from containers and convert to AppData
-    suspend fun getAppData(): List<AppData> {
+    open suspend fun getAppData(): List<AppData> {
         return try {
             val containers = apiClient.listContainers()
             logger.i { "Found ${containers.size} containers" }
