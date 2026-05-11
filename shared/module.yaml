@@ -28,10 +28,10 @@ test-dependencies:
 
 settings:
   kotlin:
-    languageVersion: 2.2
+    languageVersion: 2.3
     serialization:
       enabled: true
-      version: 1.9.0
+      version: 1.11.0
   ktor:
     enabled: true
-    version: 3.3.3
+    version: 3.4.2

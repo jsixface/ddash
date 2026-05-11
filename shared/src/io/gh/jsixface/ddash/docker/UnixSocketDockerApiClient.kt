@@ -15,7 +15,7 @@ import io.ktor.client.request.prepareGet
 import io.ktor.client.request.unixSocket
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readFully
-import io.ktor.utils.io.readUTF8Line
+import io.ktor.utils.io.readLine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
@@ -57,7 +57,7 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
         }.execute { response ->
             val channel: ByteReadChannel = response.body()
             while (!channel.isClosedForRead) {
-                val line = channel.readUTF8Line() ?: break
+                val line = channel.readLine() ?: break
                 if (line.isNotEmpty()) {
                     try {
                         val event = json.decodeFromString<DockerEvent>(line)
@@ -96,7 +96,7 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
             val channel: ByteReadChannel = response.body()
             if (isRawStream) {
                 while (!channel.isClosedForRead) {
-                    val line = channel.readUTF8Line() ?: break
+                    val line = channel.readLine() ?: break
                     emit((line + "\n").removeAnsiCodes())
                 }
             } else {
