@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 
 export type AppStatus = 'RUNNING' | 'EXITED' | 'RESTARTING' | 'CREATED' | 'PAUSED' | 'REMOVING' | 'DEAD' | 'EXTERNAL';
+export type AppHealth = 'HEALTHY' | 'UNHEALTHY' | 'STARTING' | 'NONE';
 
 export interface AppData {
     id: string;
@@ -9,6 +10,7 @@ export interface AppData {
     category: string;
     icon: LucideIcon;
     status: AppStatus;
+    health: AppHealth;
     ping: string;
     description?: string;
 }

@@ -43,12 +43,20 @@ open class DockerAppService(private val apiClient: DockerApiClient) {
             AppStatus.CREATED
         }
 
+        val health = when {
+            container.status.contains("(healthy)") -> AppHealth.HEALTHY
+            container.status.contains("(unhealthy)") -> AppHealth.UNHEALTHY
+            container.status.contains("(health: starting)") -> AppHealth.STARTING
+            else -> AppHealth.NONE
+        }
+
         return AppData(
             id = container.id,
             name = name,
             url = route,
             category = category,
             status = status,
+            health = health,
             icon = icon,
             description = description
         )
