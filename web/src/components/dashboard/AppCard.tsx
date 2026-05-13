@@ -109,9 +109,9 @@ export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onAct
                 )}
 
                 <div className="mt-1.5 md:mt-2 flex items-center gap-1.5 md:gap-2">
-                    <StatusDot status={app.status} />
+                    <StatusDot status={app.status} health={app.health} />
                     <span className={`text-[9px] md:text-[10px] font-mono font-medium ${isDark ? (app.status === 'EXITED' ? 'text-slate-500' : 'text-slate-400') : (app.status === 'EXITED' ? 'text-slate-400' : 'text-slate-500')}`}>
-                        {app.status}
+                        {app.health !== 'NONE' && app.health !== 'HEALTHY' ? `${app.status} (${app.health})` : app.status}
                     </span>
                 </div>
             </div>
