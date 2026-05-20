@@ -4,6 +4,7 @@ import type { AppData, MenuItem } from '../../types/dashboard';
 import { ContextMenu } from '../ui/ContextMenu';
 import { StatusDot } from '../ui/StatusDot';
 import { Tooltip } from '../ui/Tooltip';
+import { HealthBadge } from '../ui/HealthBadge';
 
 interface AppCardProps {
     app: AppData;
@@ -108,11 +109,14 @@ export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onAct
                     <AppTitle appName={app.name} isDark={isDark} />
                 )}
 
-                <div className="mt-1.5 md:mt-2 flex items-center gap-1.5 md:gap-2">
-                    <StatusDot status={app.status} />
-                    <span className={`text-[9px] md:text-[10px] font-mono font-medium ${isDark ? (app.status === 'EXITED' ? 'text-slate-500' : 'text-slate-400') : (app.status === 'EXITED' ? 'text-slate-400' : 'text-slate-500')}`}>
-                        {app.status}
-                    </span>
+                <div className="mt-1.5 md:mt-2 flex flex-col items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        <StatusDot status={app.status} />
+                        <span className={`text-[9px] md:text-[10px] font-mono font-medium ${isDark ? (app.status === 'EXITED' ? 'text-slate-500' : 'text-slate-400') : (app.status === 'EXITED' ? 'text-slate-400' : 'text-slate-500')}`}>
+                            {app.status}
+                        </span>
+                    </div>
+                    <HealthBadge status={app.health} isDark={isDark} />
                 </div>
             </div>
         </ContextMenu>

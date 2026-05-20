@@ -11,8 +11,13 @@ data class AppData(
     val status: AppStatus,
     val icon: String = "LayoutGrid",
     val description: String? = null,
+    val health: HealthStatus = HealthStatus.NONE,
 )
 
 enum class AppStatus {
     RUNNING, EXITED, RESTARTING, CREATED, PAUSED, REMOVING, DEAD, EXTERNAL
+}
+
+enum class HealthStatus {
+    HEALTHY, UNHEALTHY, STARTING, NONE
 }

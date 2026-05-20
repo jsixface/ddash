@@ -58,6 +58,61 @@ class DockerAppServiceTest {
         assertEquals("http://localhost:8081", app.url)
         assertEquals("Terminal", app.icon)
         assertEquals(AppStatus.RUNNING, app.status)
+        assertEquals(HealthStatus.NONE, app.health)
+    }
+
+    @Test
+    fun `test mapping with health status healthy`() = runBlocking {
+        val container = DockerContainer(
+            id = "id-healthy",
+            names = listOf("/healthy"),
+            image = "image",
+            state = "running",
+            status = "Up 2 hours (healthy)",
+            labels = mapOf(DashLabels.Enable.label to "true")
+        )
+        val apiClient = MockDockerApiClient(listOf(container))
+        val service = DockerAppService(apiClient)
+
+        val result = service.getAppData()
+
+        assertEquals(HealthStatus.HEALTHY, result[0].health)
+    }
+
+    @Test
+    fun `test mapping with health status unhealthy`() = runBlocking {
+        val container = DockerContainer(
+            id = "id-unhealthy",
+            names = listOf("/unhealthy"),
+            image = "image",
+            state = "running",
+            status = "Up 2 hours (unhealthy)",
+            labels = mapOf(DashLabels.Enable.label to "true")
+        )
+        val apiClient = MockDockerApiClient(listOf(container))
+        val service = DockerAppService(apiClient)
+
+        val result = service.getAppData()
+
+        assertEquals(HealthStatus.UNHEALTHY, result[0].health)
+    }
+
+    @Test
+    fun `test mapping with health status starting`() = runBlocking {
+        val container = DockerContainer(
+            id = "id-starting",
+            names = listOf("/starting"),
+            image = "image",
+            state = "running",
+            status = "Up 2 seconds (health: starting)",
+            labels = mapOf(DashLabels.Enable.label to "true")
+        )
+        val apiClient = MockDockerApiClient(listOf(container))
+        val service = DockerAppService(apiClient)
+
+        val result = service.getAppData()
+
+        assertEquals(HealthStatus.STARTING, result[0].health)
     }
 
     @Test
