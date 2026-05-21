@@ -3,6 +3,7 @@ package io.gh.jsixface.ddash
 import co.touchlab.kermit.Logger
 import io.gh.jsixface.ddash.api.AppData
 import io.gh.jsixface.ddash.api.AppStatus
+import io.gh.jsixface.ddash.api.HealthStatus
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.Toml
 import kotlinx.io.files.Path
@@ -45,7 +46,8 @@ open class ExternalConfigService(private val configPath: String = "/config/servi
                     category = service.category,
                     status = AppStatus.EXTERNAL,
                     icon = service.icon,
-                    description = service.description
+                    description = service.description,
+                    health = HealthStatus.NONE
                 )
             }
         } catch (e: Exception) {
