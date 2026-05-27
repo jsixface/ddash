@@ -37,6 +37,7 @@ open class DockerAppService(private val apiClient: DockerApiClient) {
         val category = labels[DashLabels.Category.label] ?: "Uncategorized"
         val icon = labels[DashLabels.Icon.label] ?: "LayoutGrid"
         val description = labels[DashLabels.Description.label]
+        val order = labels[DashLabels.Order.label]?.toIntOrNull() ?: 0
         val status = try {
             AppStatus.valueOf(container.state.uppercase())
         } catch (e: IllegalArgumentException) {
@@ -58,6 +59,7 @@ open class DockerAppService(private val apiClient: DockerApiClient) {
             status = status,
             icon = icon,
             description = description,
+            order = order,
             health = health
         )
     }

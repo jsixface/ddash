@@ -7,6 +7,7 @@ enum class DashLabels(val label: String) {
     Icon("ddash.icon"),
     Port("ddash.port"),
     Description("ddash.description"),
+    Order("ddash.order"),
     Enable("ddash.enable");
 
     companion object {

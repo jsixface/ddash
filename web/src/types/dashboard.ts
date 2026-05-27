@@ -12,6 +12,7 @@ export interface AppData {
     status: AppStatus;
     ping: string;
     description?: string;
+    order: number;
     health: HealthStatus;
 }
 

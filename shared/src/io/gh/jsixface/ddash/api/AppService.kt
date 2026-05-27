@@ -53,7 +53,7 @@ class AppService(
             result.add(app)
         }
 
-        return result.sortedWith(compareBy({ it.category }, { it.name }))
+        return result.sortedWith(compareBy({ it.category }, { it.order }, { it.name }))
     }
 
     private fun formatRouteToName(route: String): String {
