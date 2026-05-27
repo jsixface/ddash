@@ -8,7 +8,7 @@ interface HealthBadgeProps {
 }
 
 export const HealthBadge: React.FC<HealthBadgeProps> = ({ status, isDark }) => {
-    if (status === 'NONE') return null;
+    if (!status || status === 'NONE') return null;
 
     const config = {
         HEALTHY: {
@@ -28,7 +28,10 @@ export const HealthBadge: React.FC<HealthBadgeProps> = ({ status, isDark }) => {
         }
     };
 
-    const { icon: Icon, text, className } = config[status as keyof typeof config];
+    const badgeConfig = config[status as keyof typeof config];
+    if (!badgeConfig) return null;
+
+    const { icon: Icon, text, className } = badgeConfig;
 
     return (
         <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${className}`}>
