@@ -18,7 +18,7 @@ data class ExternalService(
     val category: String = "Uncategorized",
     val icon: String = "LayoutGrid",
     val description: String? = null,
-    val order: Int = 0
+    val order: Int = Int.MAX_VALUE
 )
 
 @Serializable

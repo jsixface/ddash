@@ -59,7 +59,7 @@ class DockerAppServiceTest {
         assertEquals("Terminal", app.icon)
         assertEquals(AppStatus.RUNNING, app.status)
         assertEquals(HealthStatus.NONE, app.health)
-        assertEquals(0, app.order)
+        assertEquals(Int.MAX_VALUE, app.order)
     }
 
     @Test
@@ -161,7 +161,7 @@ class DockerAppServiceTest {
     }
 
     @Test
-    fun `test mapping with invalid order label defaults to 0`() = runBlocking {
+    fun `test mapping with invalid order label defaults to Int MAX_VALUE`() = runBlocking {
         val container = DockerContainer(
             id = "id6",
             names = listOf("/container6"),
@@ -179,7 +179,7 @@ class DockerAppServiceTest {
         val result = service.getAppData()
 
         assertEquals(1, result.size)
-        assertEquals(0, result[0].order)
+        assertEquals(Int.MAX_VALUE, result[0].order)
     }
 
     @Test
