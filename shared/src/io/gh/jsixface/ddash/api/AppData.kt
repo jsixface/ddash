@@ -11,6 +11,7 @@ data class AppData(
     val status: AppStatus,
     val icon: String = "LayoutGrid",
     val description: String? = null,
+    val order: Int = Int.MAX_VALUE,
     val health: HealthStatus = HealthStatus.NONE,
 )
 

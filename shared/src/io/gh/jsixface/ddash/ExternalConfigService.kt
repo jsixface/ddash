@@ -17,7 +17,8 @@ data class ExternalService(
     val url: String,
     val category: String = "Uncategorized",
     val icon: String = "LayoutGrid",
-    val description: String? = null
+    val description: String? = null,
+    val order: Int = Int.MAX_VALUE
 )
 
 @Serializable
@@ -47,6 +48,7 @@ open class ExternalConfigService(private val configPath: String = "/config/servi
                     status = AppStatus.EXTERNAL,
                     icon = service.icon,
                     description = service.description,
+                    order = service.order,
                     health = HealthStatus.NONE
                 )
             }

@@ -85,4 +85,22 @@ class AppServiceTest {
         assertEquals(1, apps.count { it.url.removePrefix("http://").removePrefix("https://") == "managed.local" })
         assertEquals(1, apps.count { it.url.removePrefix("http://").removePrefix("https://") == "ext.local" })
     }
+
+    @Test
+    fun testSorting() = runTest {
+        val dockerApps = listOf(
+            AppData("d1", "App B", "http://b.local", "Category A", AppStatus.RUNNING, order = 2),
+            AppData("d2", "App A", "http://a.local", "Category A", AppStatus.RUNNING, order = 1),
+            AppData("d3", "App C", "http://c.local", "Category A", AppStatus.RUNNING, order = 1)
+        )
+
+        val dockerAppService = MockDockerAppService().apply { mockApps = dockerApps }
+        val appService = AppService(dockerAppService, MockExternalConfigService(emptyList()), MockCaddyApi(emptyList()))
+
+        val apps = appService.getAllAppData()
+
+        assertEquals("App A", apps[0].name) // order 1, name A
+        assertEquals("App C", apps[1].name) // order 1, name C
+        assertEquals("App B", apps[2].name) // order 2, name B
+    }
 }
