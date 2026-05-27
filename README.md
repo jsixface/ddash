@@ -100,7 +100,7 @@ Configure your applications by adding these labels to your containers:
 | `ddash.name`     | Display name in the dashboard                              | No (defaults to container name)  |
 | `ddash.category` | Grouping category in the dashboard                         | No (defaults to "Uncategorized") |
 | `ddash.icon`     | Icon name (supports Lucide icons)                          | No (defaults to "LayoutGrid")    |
-| `ddash.order`    | Display order within category (integer, ascending)         | No (defaults to 0)               |
+| `ddash.order`    | Display order within category (integer, ascending)         | No (defaults to Int.MAX_VALUE)   |
 | `ddash.port`     | The internal container port to proxy to                    | see below                        |
 
 ### Network Modes
