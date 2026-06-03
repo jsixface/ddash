@@ -31,7 +31,7 @@ open class DockerAppService(private val apiClient: DockerApiClient) {
         // If not explicitly enabled, we don't show it on dashboard.
         if (!enabled) return null
         val name = labels[DashLabels.Name.label] ?: container.names.firstOrNull()?.removePrefix("/") ?: container.id
-        val route = labels[DashLabels.Route.label]?.let {
+        val route = labels[DashLabels.Url.label] ?: labels[DashLabels.Route.label]?.let {
             (if (settings.caddySecureRouting) "https://" else "http://") + it
         } ?: ""
         val category = labels[DashLabels.Category.label] ?: "Uncategorized"

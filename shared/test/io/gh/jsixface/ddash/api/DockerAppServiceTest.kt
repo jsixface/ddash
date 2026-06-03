@@ -223,4 +223,46 @@ class DockerAppServiceTest {
 
         assertEquals("id3", result[0].name)
     }
+
+    @Test
+    fun `test mapping with url label`() = runBlocking {
+        val container = DockerContainer(
+            id = "id7",
+            names = listOf("/container7"),
+            image = "image7",
+            state = "running",
+            status = "Up",
+            labels = mapOf(
+                DashLabels.Enable.label to "true",
+                DashLabels.Url.label to "https://custom.url",
+                DashLabels.Route.label to "should.be.ignored"
+            )
+        )
+        val apiClient = MockDockerApiClient(listOf(container))
+        val service = DockerAppService(apiClient)
+
+        val result = service.getAppData()
+
+        assertEquals(1, result.size)
+        assertEquals("https://custom.url", result[0].url)
+    }
+
+    @Test
+    fun `test ping field presence`() = runBlocking {
+        val container = DockerContainer(
+            id = "id8",
+            names = listOf("/container8"),
+            image = "image8",
+            state = "running",
+            status = "Up",
+            labels = mapOf(DashLabels.Enable.label to "true")
+        )
+        val apiClient = MockDockerApiClient(listOf(container))
+        val service = DockerAppService(apiClient)
+
+        val result = service.getAppData()
+
+        assertEquals(1, result.size)
+        assertEquals("", result[0].ping)
+    }
 }

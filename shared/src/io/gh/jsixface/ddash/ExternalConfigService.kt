@@ -18,7 +18,8 @@ data class ExternalService(
     val category: String = "Uncategorized",
     val icon: String = "LayoutGrid",
     val description: String? = null,
-    val order: Int = Int.MAX_VALUE
+    val order: Int = Int.MAX_VALUE,
+    val ping: String = ""
 )
 
 @Serializable
@@ -49,7 +50,8 @@ open class ExternalConfigService(private val configPath: String = "/config/servi
                     icon = service.icon,
                     description = service.description,
                     order = service.order,
-                    health = HealthStatus.NONE
+                    health = HealthStatus.NONE,
+                    ping = service.ping
                 )
             }
         } catch (e: Exception) {
