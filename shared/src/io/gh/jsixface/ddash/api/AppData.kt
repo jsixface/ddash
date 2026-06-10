@@ -13,6 +13,7 @@ data class AppData(
     val description: String? = null,
     val order: Int = Int.MAX_VALUE,
     val health: HealthStatus = HealthStatus.NONE,
+    val ping: String = "",
 )
 
 enum class AppStatus {

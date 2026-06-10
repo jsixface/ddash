@@ -60,6 +60,29 @@ class DockerAppServiceTest {
         assertEquals(AppStatus.RUNNING, app.status)
         assertEquals(HealthStatus.NONE, app.health)
         assertEquals(Int.MAX_VALUE, app.order)
+        assertEquals("", app.ping)
+    }
+
+    @Test
+    fun `test mapping with url label override`() = runBlocking {
+        val container = DockerContainer(
+            id = "id-url",
+            names = listOf("/container-url"),
+            image = "image",
+            state = "running",
+            status = "Up",
+            labels = mapOf(
+                DashLabels.Enable.label to "true",
+                DashLabels.Route.label to "old.local",
+                DashLabels.Url.label to "https://new.example.com"
+            )
+        )
+        val apiClient = MockDockerApiClient(listOf(container))
+        val service = DockerAppService(apiClient)
+
+        val result = service.getAppData()
+
+        assertEquals("https://new.example.com", result[0].url)
     }
 
     @Test
