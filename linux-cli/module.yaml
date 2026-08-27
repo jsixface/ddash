@@ -1,4 +1,4 @@
-#file: noinspection AmperEmptyModuleInspection
+#file: noinspection KotlinToolchainEmptyModuleInspection
 product:
   type: linux/app
   platforms: [ linuxArm64, linuxX64 ]

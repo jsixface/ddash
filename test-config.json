@@ -1,0 +1,639 @@
+{
+    "apps": {
+        "http": {
+            "servers": {
+                "srv0": {
+                    "listen": [
+                        ":443"
+                    ],
+                    "routes": [
+                        {
+                            "handle": [
+                                {
+                                    "handler": "subroute",
+                                    "routes": [
+                                        {
+                                            "handle": [
+                                                {
+                                                    "handler": "reverse_proxy",
+                                                    "upstreams": [
+                                                        {
+                                                            "dial": "actual_server:5006"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "budget.home"
+                                    ]
+                                }
+                            ],
+                            "terminal": true
+                        }
+                    ],
+                    "tls_connection_policies": [
+                        {
+                            "certificate_selection": {
+                                "any_tag": [
+                                    "cert0"
+                                ]
+                            },
+                            "match": {
+                                "sni": [
+                                    "budget.home"
+                                ]
+                            }
+                        },
+                        {}
+                    ]
+                },
+                "srv1": {
+                    "listen": [
+                        ":80"
+                    ],
+                    "routes": [
+                        {
+                            "handle": [
+                                {
+                                    "handler": "subroute",
+                                    "routes": [
+                                        {
+                                            "handle": [
+                                                {
+                                                    "handler": "vars",
+                                                    "root": "/var/www/colouringlives"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "handle": [
+                                                {
+                                                    "handler": "headers",
+                                                    "response": {
+                                                        "set": {
+                                                            "Strict-Transport-Security": [
+                                                                "max-age=31536000;"
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "match": [
+                                                {
+                                                    "host": [
+                                                        "colouringlives.org"
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "handle": [
+                                                {
+                                                    "handler": "headers",
+                                                    "response": {
+                                                        "deferred": true,
+                                                        "delete": [
+                                                            "X-Powered-By",
+                                                            "Server"
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "handler": "headers",
+                                                    "response": {
+                                                        "require": {
+                                                            "headers": {
+                                                                "Content-Security-Policy": null,
+                                                                "Referrer-Policy": null,
+                                                                "X-XSS-Protection": null
+                                                            }
+                                                        },
+                                                        "set": {
+                                                            "Content-Security-Policy": [
+                                                                "default-src 'self' data: blob: *.wcpgw.in *.sixface.in; \n\t\t\t\t\t\t\t\t\tstyle-src 'self' 'unsafe-inline'; \n\t\t\t\t\t\t\t\t\tscript-src 'self' 'unsafe-inline' blob:; \n\t\t\t\t\t\t\t\t\tworker-src 'self' blob:; \n\t\t\t\t\t\t\t\t\tconnect-src 'self'; \n\t\t\t\t\t\t\t\t\tobject-src 'none'; \n\t\t\t\t\t\t\t\t\tframe-ancestors 'self'"
+                                                            ],
+                                                            "Referrer-Policy": [
+                                                                "no-referrer"
+                                                            ],
+                                                            "X-Xss-Protection": [
+                                                                "1; mode=block"
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "encodings": {
+                                                        "gzip": {},
+                                                        "zstd": {}
+                                                    },
+                                                    "handler": "encode",
+                                                    "prefer": [
+                                                        "zstd",
+                                                        "gzip"
+                                                    ]
+                                                },
+                                                {
+                                                    "handler": "file_server",
+                                                    "hide": [
+                                                        "/etc/caddy/Caddyfile"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "colouringlives.org"
+                                    ]
+                                }
+                            ],
+                            "terminal": true
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "subroute",
+                                    "routes": [
+                                        {
+                                            "handle": [
+                                                {
+                                                    "handler": "reverse_proxy",
+                                                    "upstreams": [
+                                                        {
+                                                            "dial": "tsdproxy:8080"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "tsdproxy.home"
+                                    ]
+                                }
+                            ],
+                            "terminal": true
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "credit-dash:8080"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "balance.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "host.docker.internal:6052"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "esp.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "reitti:8080"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "reitti.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "localhost:8080"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "my.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "immich_server:2283"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "photos.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "gluetun:7476"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "qui.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "gluetun:8080"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "torrent.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "gluetun:7878"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "radarr.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "gluetun:8989"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "sonarr.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "gluetun:9696"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "prowlarr.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "navidrome-indian:4533"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "indian-music.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "host.docker.internal:8096"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "jelly.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "frigate:5000"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "frigate.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "navidrome:4533"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "music.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "excalidraw:80"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "draw.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "codexvert:8080"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "codexvert.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "technitium_dns:5380"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "technitium.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "host.docker.internal:8123"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "assistant.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "beszel:8090"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "beszel.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "adguard:80"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "adguard.home"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": "zerobyte:4096"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "host": [
+                                        "zerobyte.home"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "srv2": {
+                    "listen": [
+                        ":8068"
+                    ],
+                    "routes": [
+                        {
+                            "handle": [
+                                {
+                                    "handler": "vars",
+                                    "root": "/srv/blog/public"
+                                },
+                                {
+                                    "encodings": {
+                                        "gzip": {},
+                                        "zstd": {}
+                                    },
+                                    "handler": "encode",
+                                    "prefer": [
+                                        "gzip",
+                                        "zstd"
+                                    ]
+                                },
+                                {
+                                    "handler": "file_server",
+                                    "hide": [
+                                        "/etc/caddy/Caddyfile"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "tls": {
+            "certificates": {
+                "load_files": [
+                    {
+                        "certificate": "/certs/wildcard.crt",
+                        "key": "/certs/wildcard.key",
+                        "tags": [
+                            "cert0"
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}

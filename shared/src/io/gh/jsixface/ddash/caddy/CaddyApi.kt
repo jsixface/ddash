@@ -52,18 +52,18 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
 
     override suspend fun addRoute(host: String, upstream: String) {
         logger.i { "Adding route for $host -> $upstream" }
-        val targetServer = try {
+        val targetServer: String = try {
             val servers: Map<String, CaddyServer> = client.get("/config/apps/http/servers").body()
             val useSecure = Globals.settings.caddySecureRouting
             val targetPort = if (useSecure) ":443" else ":80"
-            val serverId = servers.entries.find { it.value.listen.contains(targetPort) }?.key ?: "srv0"
+            val serverId = servers.entries.find { it.value.listen.contains(targetPort) }?.key
             logger.d { "Target server for port $targetPort is $serverId (secure: $useSecure)" }
             serverId
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             logger.e(e) { "Error determining target server, defaulting to srv0" }
-            "srv0"
-        }
+            null
+        } ?: return
 
         val route = CaddyRoute(
             match = listOf(CaddyMatcher(host = listOf(host))),

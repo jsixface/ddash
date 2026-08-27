@@ -13,7 +13,7 @@ globs: shared/**/*.kt
 
 * Keep code clean and maintainable by following best practices and conventions
 
-* This project uses amper as a build tool. To run a test use `./amper test`.
+* This project uses the Kotlin Toolchain (formerly Amper) as a build tool. To run a test use `./kotlin test`.
 
 * When you have to build, try building for only jvm platform using `--platform jvm` rather than all platforms. This is
   faster.

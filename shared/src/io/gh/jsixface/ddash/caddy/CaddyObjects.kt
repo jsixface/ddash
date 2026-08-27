@@ -55,7 +55,7 @@ sealed class CaddyHandler {
 
     @Serializable
     @SerialName("static_response")
-    data class StaticResponse(val body: String) : CaddyHandler()
+    data class StaticResponse(val body: String? = null) : CaddyHandler()
 
 
     @Serializable

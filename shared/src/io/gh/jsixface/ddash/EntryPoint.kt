@@ -1,6 +1,7 @@
 package io.gh.jsixface.ddash
 
 import co.touchlab.kermit.Logger
+import co.touchlab.kermit.Severity
 import io.gh.jsixface.ddash.docker.UnixSocketDockerApiClient
 import io.gh.jsixface.ddash.server.configureServer
 import io.ktor.server.application.Application
@@ -10,6 +11,9 @@ import kotlinx.coroutines.runBlocking
 
 
 fun runApplication(args: Array<String>) {
+    if (args.contains("--debug")) {
+        Logger.setMinSeverity(Severity.Debug)
+    }
     val logger = Logger.withTag("EntryPoint")
     logger.i { "Starting Docker Dashboard application..." }
 

@@ -6,11 +6,13 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-      - "127.0.0.1:2019:2019"
+      - "2019:2019"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
+    environment:
+      - CADDY_ADMIN=true
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -25,6 +27,7 @@ services:
       - "ddash.icon=Database"
       - "ddash.route=pgadmin.neon"
       - "ddash.enable=true"
+      - "ddash.port=80"
 
   beszel:
     image: henrygd/beszel:latest

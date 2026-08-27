@@ -1,3 +1,7 @@
+{
+	admin 0.0.0.0:2019
+}
+
 localhost:80 {
 	root * /config
 	file_server

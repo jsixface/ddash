@@ -4,7 +4,6 @@ product:
 
 test-dependencies@jvm:
   - $kotlin.test.junit5
-  - $ktor.server.testHost
 
 dependencies:
   - $kotlin.serialization.json
@@ -13,6 +12,7 @@ dependencies:
   - $ktor.server.core
   - $ktor.server.cio
   - $ktor.server.contentNegotiation
+  - $ktor.server.testHost
   - $ktor.client.core
   - $ktor.client.cio
   - $ktor.client.serialization
@@ -24,14 +24,11 @@ dependencies:
 
 test-dependencies:
   - $kotlin.test
-  - $ktor.server.testHost
 
 settings:
   kotlin:
     languageVersion: 2.3
     serialization:
       enabled: true
-      version: 1.11.0
   ktor:
     enabled: true
-    version: 3.4.2

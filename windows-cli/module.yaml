@@ -1,4 +1,4 @@
-#file: noinspection AmperEmptyModuleInspection
+#file: noinspection KotlinToolchainEmptyModuleInspection
 product:
   type: windows/app
   platforms: [ mingwX64 ]
