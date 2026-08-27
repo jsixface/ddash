@@ -1,3 +1,10 @@
 /build/
 /.idea
 .run
+/.infigraph/sessions/activity_2026-08-27.jsonl
+/.infigraph/docs.kuzu
+/.infigraph/docs_embeddings.bin
+/.infigraph/embeddings.bin
+/.infigraph/graph
+/.infigraph/graph.lock
+/.infigraph/scip-enrich.log
