@@ -2,6 +2,7 @@ package io.gh.jsixface.ddash
 
 import co.touchlab.kermit.Logger
 import io.gh.jsixface.ddash.caddy.CaddyApi
+import io.gh.jsixface.ddash.caddy.RoutePlacement
 import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
 import io.gh.jsixface.ddash.docker.def.DockerContainer
@@ -27,19 +28,39 @@ class RouteManager(
             return
         }
 
-        val currentRoutes = fetchCurrentRoutes()
+        val placements = fetchRoutePlacements()
         var changed = false
 
         appsToRoute.forEach { container ->
             val host = container.labels[DashLabels.Route.label]!!
             logger.d { "Checking container --- ${container.names}, ${container.image}, ${container.ports}" }
-            if (!currentRoutes.contains(host)) {
-                val upstream = getUpstream(container, containers) ?: return@forEach
-                caddyApi.addRoute(host, upstream)
-                changed = true
-            } else {
-                logger.d { "Route for $host already exists in Caddy." }
+
+            val expectedSecure = container.labels[DashLabels.Https.label]?.toBoolean() ?: settings.caddySecureRouting
+            val expectedServer = caddyApi.resolveServerId(expectedSecure)
+            if (expectedServer == null) {
+                logger.e { "No Caddy server listening on ${if (expectedSecure) ":443" else ":80"} found. Skipping route for $host." }
+                return@forEach
             }
+
+            val hostPlacements = placements.filter { it.host == host }
+            val correctPlacement = hostPlacements.find { it.serverId == expectedServer }
+
+            if (correctPlacement != null) {
+                logger.d { "Route for $host already exists on the correct server ($expectedServer)." }
+                return@forEach
+            }
+
+            val upstream = getUpstream(container, containers) ?: return@forEach
+
+            if (hostPlacements.isNotEmpty()) {
+                logger.i { "Route for $host is on the wrong server(s); correcting placement to $expectedServer." }
+                hostPlacements
+                    .sortedByDescending { it.index }
+                    .forEach { caddyApi.removeRoute(it.serverId, it.index) }
+            }
+
+            caddyApi.addRoute(host, upstream, expectedServer)
+            changed = true
         }
 
         if (changed && settings.caddyAutoSaveConfig) {
@@ -57,12 +78,12 @@ class RouteManager(
         }
     }
 
-    private suspend fun fetchCurrentRoutes(): List<String> {
+    private suspend fun fetchRoutePlacements(): List<RoutePlacement> {
         return try {
-            caddyApi.getRoutes()
+            caddyApi.getRoutePlacements()
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            logger.e(e) { "Error fetching current routes from Caddy" }
+            logger.e(e) { "Error fetching current route placements from Caddy" }
             emptyList()
         }
     }

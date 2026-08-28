@@ -1,6 +1,7 @@
 package io.gh.jsixface.ddash
 
 import io.gh.jsixface.ddash.caddy.CaddyApi
+import io.gh.jsixface.ddash.caddy.RoutePlacement
 import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
 import io.gh.jsixface.ddash.docker.def.DockerContainer
@@ -34,11 +35,19 @@ class StartupCoordinatorTest {
     }
 
     class MockCaddyApi : CaddyApi {
-        val addedRoutes = mutableListOf<Pair<String, String>>()
+        val addedRoutes = mutableListOf<Triple<String, String, String>>()
+        val removedRoutes = mutableListOf<Pair<String, Int>>()
+        var placements: List<RoutePlacement> = emptyList()
         override suspend fun checkConnectivity(): Boolean = true
-        override suspend fun getRoutes(): List<String> = emptyList()
-        override suspend fun addRoute(host: String, upstream: String) {
-            addedRoutes.add(host to upstream)
+        override suspend fun getRoutes(): List<String> = placements.map { it.host }
+        override suspend fun getRoutePlacements(): List<RoutePlacement> = placements
+        override suspend fun resolveServerId(secure: Boolean): String? = if (secure) "srv443" else "srv80"
+        override suspend fun addRoute(host: String, upstream: String, serverId: String) {
+            addedRoutes.add(Triple(host, upstream, serverId))
+        }
+
+        override suspend fun removeRoute(serverId: String, index: Int) {
+            removedRoutes.add(serverId to index)
         }
         override suspend fun saveConfig() {}
     }
@@ -275,5 +284,84 @@ class StartupCoordinatorTest {
 
         assertEquals(1, caddyApi.addedRoutes.size)
         assertEquals("$containerId:8080", caddyApi.addedRoutes[0].second)
+    }
+
+    @Test
+    fun `route already on the correct server is not re-added`() = runBlocking {
+        val container = DockerContainer(
+            id = "id1",
+            names = listOf("/web1"),
+            image = "nginx",
+            state = "running",
+            status = "Up",
+            labels = mapOf(
+                DashLabels.Enable.label to "true",
+                DashLabels.Route.label to "web1.local"
+            ),
+            ports = listOf(DockerPort(privatePort = 80, type = "tcp"))
+        )
+        val dockerClient = MockDockerApiClient(listOf(container))
+        val caddyApi = MockCaddyApi()
+        caddyApi.placements = listOf(RoutePlacement("web1.local", "srv80", 0))
+        val coordinator = StartupCoordinator(dockerClient, caddyApi)
+
+        coordinator.run()
+
+        assertEquals(0, caddyApi.addedRoutes.size)
+        assertEquals(0, caddyApi.removedRoutes.size)
+    }
+
+    @Test
+    fun `route on the wrong server is corrected`() = runBlocking {
+        val container = DockerContainer(
+            id = "id1",
+            names = listOf("/web1"),
+            image = "nginx",
+            state = "running",
+            status = "Up",
+            labels = mapOf(
+                DashLabels.Enable.label to "true",
+                DashLabels.Route.label to "web1.local"
+            ),
+            ports = listOf(DockerPort(privatePort = 80, type = "tcp"))
+        )
+        val dockerClient = MockDockerApiClient(listOf(container))
+        val caddyApi = MockCaddyApi()
+        caddyApi.placements = listOf(RoutePlacement("web1.local", "srv443", 0))
+        val coordinator = StartupCoordinator(dockerClient, caddyApi)
+
+        coordinator.run()
+
+        assertEquals(1, caddyApi.removedRoutes.size)
+        assertEquals("srv443" to 0, caddyApi.removedRoutes[0])
+        assertEquals(1, caddyApi.addedRoutes.size)
+        assertEquals("web1.local", caddyApi.addedRoutes[0].first)
+        assertEquals("web1:80", caddyApi.addedRoutes[0].second)
+        assertEquals("srv80", caddyApi.addedRoutes[0].third)
+    }
+
+    @Test
+    fun `per-route ddash-https label overrides global routing`() = runBlocking {
+        val container = DockerContainer(
+            id = "id1",
+            names = listOf("/web1"),
+            image = "nginx",
+            state = "running",
+            status = "Up",
+            labels = mapOf(
+                DashLabels.Enable.label to "true",
+                DashLabels.Route.label to "web1.local",
+                DashLabels.Https.label to "true"
+            ),
+            ports = listOf(DockerPort(privatePort = 80, type = "tcp"))
+        )
+        val dockerClient = MockDockerApiClient(listOf(container))
+        val caddyApi = MockCaddyApi()
+        val coordinator = StartupCoordinator(dockerClient, caddyApi)
+
+        coordinator.run()
+
+        assertEquals(1, caddyApi.addedRoutes.size)
+        assertEquals("srv443", caddyApi.addedRoutes[0].third)
     }
 }

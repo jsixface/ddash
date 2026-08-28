@@ -6,6 +6,7 @@ enum class DashLabels(val label: String) {
     Route("ddash.route"),
     Icon("ddash.icon"),
     Port("ddash.port"),
+    Https("ddash.https"),
     Description("ddash.description"),
     Order("ddash.order"),
     Url("ddash.url"),

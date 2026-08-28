@@ -2,23 +2,27 @@ package io.gh.jsixface.ddash.api
 
 import io.gh.jsixface.ddash.ExternalConfigService
 import io.gh.jsixface.ddash.caddy.CaddyApi
+import io.gh.jsixface.ddash.caddy.RoutePlacement
 import io.gh.jsixface.ddash.docker.DockerApiClient
 import io.gh.jsixface.ddash.docker.def.DockerContainer
 import io.gh.jsixface.ddash.docker.def.DockerEvent
 import io.gh.jsixface.ddash.docker.def.DockerImage
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.test.runTest
 
 class AppServiceTest {
 
     private class MockCaddyApi(val routes: List<String>) : CaddyApi {
         override suspend fun checkConnectivity(): Boolean = true
         override suspend fun getRoutes(): List<String> = routes
-        override suspend fun addRoute(host: String, upstream: String) {}
+        override suspend fun getRoutePlacements(): List<RoutePlacement> = emptyList()
+        override suspend fun resolveServerId(secure: Boolean): String? = null
+        override suspend fun addRoute(host: String, upstream: String, serverId: String) {}
+        override suspend fun removeRoute(serverId: String, index: Int) {}
         override suspend fun saveConfig() {}
     }
 
@@ -33,9 +37,9 @@ class AppServiceTest {
             override suspend fun listImages(): List<DockerImage> = emptyList()
             override fun events(): Flow<DockerEvent> = emptyFlow()
             override fun containerLogs(containerId: String, tail: Int, follow: Boolean, timestamps: Boolean): Flow<String> = emptyFlow()
-            override suspend fun stopContainer(id: String) {}
-            override suspend fun restartContainer(id: String) {}
-            override suspend fun startContainer(id: String) {}
+            override suspend fun stopContainer(containerId: String) {}
+            override suspend fun restartContainer(containerId: String) {}
+            override suspend fun startContainer(containerId: String) {}
         }
     ) {
         var mockApps: List<AppData> = emptyList()

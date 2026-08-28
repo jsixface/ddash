@@ -12,6 +12,12 @@ data class CaddyServer(
     val routes: List<CaddyRoute>,
 )
 
+data class RoutePlacement(
+    val host: String,
+    val serverId: String,
+    val index: Int,
+)
+
 @Serializable
 data class CaddyServers(
     val servers: Map<String, CaddyServer>,
