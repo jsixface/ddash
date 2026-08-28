@@ -7,6 +7,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -92,7 +93,7 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
             handle = listOf(CaddyHandler.ReverseProxy(listOf(CaddyUpstream(upstream))))
         )
         try {
-            client.post("/config/apps/http/servers/$serverId/routes") {
+            client.put("/config/apps/http/servers/$serverId/routes/0") {
                 contentType(ContentType.Application.Json)
                 setBody(route)
             }
