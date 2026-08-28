@@ -16,8 +16,9 @@ import io.ktor.client.request.unixSocket
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readFully
 import io.ktor.utils.io.readLine
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.serialization.json.Json
 
 class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClient {
@@ -40,7 +41,7 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
         }
     }
 
-    override fun events(): Flow<DockerEvent> = flow {
+    override fun events(): Flow<DockerEvent> = callbackFlow {
         client.prepareGet("/events") {
             unixSocket(Globals.settings.dockerSocket)
             timeout {
@@ -56,18 +57,19 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
             }
         }.execute { response ->
             val channel: ByteReadChannel = response.body()
-            while (!channel.isClosedForRead) {
+            while (!channel.isClosedForRead && isActive) {
                 val line = channel.readLine() ?: break
                 if (line.isNotEmpty()) {
                     try {
                         val event = json.decodeFromString<DockerEvent>(line)
-                        emit(event)
+                        send(event)
                     } catch (e: Exception) {
                         logger.e { "Error decoding Docker event: $line. Reason: ${e.message}" }
                     }
                 }
             }
         }
+        awaitClose { }
     }
 
     override fun containerLogs(
@@ -75,7 +77,7 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
         tail: Int,
         follow: Boolean,
         timestamps: Boolean,
-    ): Flow<String> = flow {
+    ): Flow<String> = callbackFlow {
         client.prepareGet("/containers/$containerId/logs") {
             unixSocket(Globals.settings.dockerSocket)
             timeout {
@@ -95,12 +97,12 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
 
             val channel: ByteReadChannel = response.body()
             if (isRawStream) {
-                while (!channel.isClosedForRead) {
+                while (!channel.isClosedForRead && isActive) {
                     val line = channel.readLine() ?: break
-                    emit((line + "\n").removeAnsiCodes())
+                    send((line + "\n").removeAnsiCodes())
                 }
             } else {
-                while (!channel.isClosedForRead) {
+                while (!channel.isClosedForRead && isActive) {
                     val header = ByteArray(8)
                     try {
                         channel.readFully(header)
@@ -113,7 +115,7 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
                         if (size > 0) {
                             val payload = ByteArray(size)
                             channel.readFully(payload)
-                            emit(payload.decodeToString().removeAnsiCodes())
+                            send(payload.decodeToString().removeAnsiCodes())
                         } else if (size < 0) {
                             logger.w { "Negative payload size: $size. Something is wrong with the stream." }
                             break
@@ -125,6 +127,7 @@ class UnixSocketDockerApiClient(private val client: HttpClient) : DockerApiClien
                 }
             }
         }
+        awaitClose { }
     }
 
     override suspend fun stopContainer(containerId: String) {
