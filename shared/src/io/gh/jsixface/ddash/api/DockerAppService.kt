@@ -32,7 +32,8 @@ open class DockerAppService(private val apiClient: DockerApiClient) {
         if (!enabled) return null
         val name = labels[DashLabels.Name.label] ?: container.names.firstOrNull()?.removePrefix("/") ?: container.id
         val route = labels[DashLabels.Url.label] ?: labels[DashLabels.Route.label]?.let {
-            (if (settings.caddySecureRouting) "https://" else "http://") + it
+            val secure = settings.caddySecureRouting || labels[DashLabels.Https.label]?.toBoolean() ?: false
+            (if (secure) "https://" else "http://") + it
         } ?: ""
         val category = labels[DashLabels.Category.label] ?: "Uncategorized"
         val icon = labels[DashLabels.Icon.label] ?: "LayoutGrid"

@@ -162,16 +162,17 @@ class DockerAppServiceTest {
     }
 
     @Test
-    fun `test mapping with order label`() = runBlocking {
+    fun `test mapping with https label overrides http`() = runBlocking {
         val container = DockerContainer(
-            id = "id5",
-            names = listOf("/container5"),
-            image = "image5",
+            id = "id-https",
+            names = listOf("/container-https"),
+            image = "image",
             state = "running",
             status = "Up",
             labels = mapOf(
                 DashLabels.Enable.label to "true",
-                DashLabels.Order.label to "10"
+                DashLabels.Https.label to "true",
+                DashLabels.Url.label to "example.com"
             )
         )
         val apiClient = MockDockerApiClient(listOf(container))
@@ -179,8 +180,29 @@ class DockerAppServiceTest {
 
         val result = service.getAppData()
 
-        assertEquals(1, result.size)
-        assertEquals(10, result[0].order)
+        assertEquals("https://example.com", result[0].url)
+    }
+
+    @Test
+    fun `test mapping with https label and caddySecureRouting`() = runBlocking {
+        val container = DockerContainer(
+            id = "id-https2",
+            names = listOf("/container-https2"),
+            image = "image",
+            state = "running",
+            status = "Up",
+            labels = mapOf(
+                DashLabels.Enable.label to "true",
+                DashLabels.Https.label to "true",
+                DashLabels.Url.label to "example.com"
+            )
+        )
+        val apiClient = MockDockerApiClient(listOf(container))
+        val service = DockerAppService(apiClient)
+
+        val result = service.getAppData()
+
+        assertEquals("https://example.com", result[0].url)
     }
 
     @Test
