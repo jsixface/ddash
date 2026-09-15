@@ -7,10 +7,18 @@ interface ContextMenuProps {
     isDark: boolean;
 }
 
+function clearTextSelection() {
+    const sel = window.getSelection?.();
+    if (sel && sel.rangeCount > 0) {
+        sel.removeAllRanges();
+    }
+}
+
 export const ContextMenu: React.FC<ContextMenuProps> = ({ children, menuItems, isDark }) => {
     const [visible, setVisible] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const menuRef = useRef<HTMLDivElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
 
     const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isLongPress = useRef(false);
@@ -25,8 +33,19 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ children, menuItems, i
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Disable text selection on long-press: `selectstart` isn't a React
+    // synthetic event, so it has to be blocked via a native listener.
+    useEffect(() => {
+        const el = wrapperRef.current;
+        if (!el) return;
+        const blockSelection = (e: Event) => e.preventDefault();
+        el.addEventListener('selectstart', blockSelection);
+        return () => el.removeEventListener('selectstart', blockSelection);
+    }, []);
+
     const handleContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
+        clearTextSelection();
         setVisible(true);
         setPosition({ x: e.clientX, y: e.clientY });
     };
@@ -38,6 +57,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ children, menuItems, i
 
         longPressTimer.current = setTimeout(() => {
             isLongPress.current = true;
+            clearTextSelection();
             setVisible(true);
             setPosition(pos);
             if ('vibrate' in navigator) navigator.vibrate(50);
@@ -57,9 +77,17 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ children, menuItems, i
 
     return (
         <div
+            ref={wrapperRef}
             onContextMenu={handleContextMenu}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
+            onTouchCancel={() => {
+                if (longPressTimer.current) {
+                    clearTimeout(longPressTimer.current);
+                    longPressTimer.current = null;
+                }
+                isLongPress.current = false;
+            }}
             onTouchMove={() => {
                 if (longPressTimer.current) {
                     clearTimeout(longPressTimer.current);
@@ -73,6 +101,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ children, menuItems, i
                     isLongPress.current = false;
                 }
             }}
+            className="select-none [-webkit-touch-callout:none]"
         >
             {children}
             {visible && (
