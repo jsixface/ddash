@@ -153,15 +153,15 @@ export default function NexusDashboard() {
                 <DashboardHeader
                     time={time}
                     isDark={isDark}
+                    session={session}
+                    onLogin={login}
+                    onLogout={logout}
                 />
 
                 <DashboardActionBar
                     onSearchClick={() => setIsCommandOpen(true)}
                     isDark={isDark}
                     setIsDark={setIsDark}
-                    session={session}
-                    onLogin={login}
-                    onLogout={logout}
                 />
 
                 {authError && (
@@ -194,7 +194,6 @@ export default function NexusDashboard() {
                                         onViewLogs={(app) => setSelectedAppForLogs(app)}
                                         onActionSuccess={fetchApps}
                                         session={session}
-                                        onLogin={login}
                                         onUnauthorized={fetchSession}
                                     />
                                 ))}

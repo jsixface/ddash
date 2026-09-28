@@ -1,24 +1,17 @@
 import React from 'react';
-import { Search, Sun, Moon, LogIn, LogOut } from 'lucide-react';
-import type { SessionInfo } from '../../types/dashboard';
+import { Search, Sun, Moon } from 'lucide-react';
 import { Tooltip } from '../ui/Tooltip';
 
 interface DashboardActionBarProps {
     onSearchClick: () => void;
     isDark: boolean;
     setIsDark: (dark: boolean) => void;
-    session: SessionInfo;
-    onLogin: () => void;
-    onLogout: () => void;
 }
 
 export const DashboardActionBar: React.FC<DashboardActionBarProps> = ({
     onSearchClick,
     isDark,
-    setIsDark,
-    session,
-    onLogin,
-    onLogout
+    setIsDark
 }) => {
     const toolButton = `p-2 md:p-3 rounded-lg md:rounded-xl transition-all shadow-sm ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-amber-300' : 'bg-white/40 hover:bg-white/80 border border-white/40 hover:border-white/60 text-slate-400 hover:text-violet-500'}`;
 
@@ -44,21 +37,6 @@ export const DashboardActionBar: React.FC<DashboardActionBarProps> = ({
 
                 {/* Tools */}
                 <div className="flex items-center gap-1 md:gap-2 pr-1 md:pr-2">
-                    {session.authEnabled && (
-                        session.user ? (
-                            <Tooltip content={`Signed in as ${session.user.name} — click to log out`} isDark={isDark}>
-                                <button onClick={onLogout} aria-label="Log out" className={toolButton}>
-                                    <LogOut size={18} className="md:w-5 md:h-5" />
-                                </button>
-                            </Tooltip>
-                        ) : (
-                            <Tooltip content="Log in to start, stop and restart apps" isDark={isDark}>
-                                <button onClick={onLogin} aria-label="Log in" className={toolButton}>
-                                    <LogIn size={18} className="md:w-5 md:h-5" />
-                                </button>
-                            </Tooltip>
-                        )
-                    )}
                     <Tooltip content={isDark ? "Light Mode" : "Dark Mode"} isDark={isDark}>
                         <button
                             onClick={() => setIsDark(!isDark)}

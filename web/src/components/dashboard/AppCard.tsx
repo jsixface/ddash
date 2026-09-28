@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, FileText, LogIn, Play, Power, RefreshCw } from 'lucide-react';
+import { ExternalLink, FileText, Play, Power, RefreshCw } from 'lucide-react';
 import type { AppData, MenuItem, SessionInfo } from '../../types/dashboard';
 import { ContextMenu } from '../ui/ContextMenu';
 import { StatusDot } from '../ui/StatusDot';
@@ -12,7 +12,6 @@ interface AppCardProps {
     onViewLogs: (app: AppData) => void;
     onActionSuccess?: () => void;
     session: SessionInfo;
-    onLogin: () => void;
     /** Called when the server answers 401, i.e. the session expired. */
     onUnauthorized?: () => void;
 }
@@ -23,7 +22,7 @@ const AppTitle: React.FC<{ appName: string; isDark: boolean }> = ({ appName, isD
     </h3>
 );
 
-export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onActionSuccess, session, onLogin, onUnauthorized }) => {
+export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onActionSuccess, session, onUnauthorized }) => {
     const Icon = app.icon;
 
     const handleLaunch = () => {
@@ -63,8 +62,8 @@ export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onAct
                 ]
             ),
         ]
-        // Anonymous visitors can still launch apps; managing them needs a login.
-        : [{ label: "Log in to manage", icon: LogIn, action: onLogin }];
+        // Anonymous visitors can still launch apps; managing them needs a login (button in the header).
+        : [];
 
     const menuItems: MenuItem[] = [
         ...(isStopped ? [] : [{ label: "Launch App", icon: ExternalLink, action: handleLaunch }]),
