@@ -1,18 +1,27 @@
 import React from 'react';
-import { Search, Sun, Moon } from 'lucide-react';
+import { Search, Sun, Moon, LogIn, LogOut } from 'lucide-react';
+import type { SessionInfo } from '../../types/dashboard';
 import { Tooltip } from '../ui/Tooltip';
 
 interface DashboardActionBarProps {
     onSearchClick: () => void;
     isDark: boolean;
     setIsDark: (dark: boolean) => void;
+    session: SessionInfo;
+    onLogin: () => void;
+    onLogout: () => void;
 }
 
 export const DashboardActionBar: React.FC<DashboardActionBarProps> = ({
     onSearchClick,
     isDark,
-    setIsDark
+    setIsDark,
+    session,
+    onLogin,
+    onLogout
 }) => {
+    const toolButton = `p-2 md:p-3 rounded-lg md:rounded-xl transition-all shadow-sm ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-amber-300' : 'bg-white/40 hover:bg-white/80 border border-white/40 hover:border-white/60 text-slate-400 hover:text-violet-500'}`;
+
     return (
         <div className="fixed bottom-6 inset-x-4 md:sticky md:top-6 md:bottom-auto md:inset-x-0 z-50 mb-0 md:mb-12">
             <div className={`flex items-center justify-between gap-2 md:gap-4 p-1.5 md:p-2 backdrop-blur-xl border rounded-xl md:rounded-2xl shadow-2xl max-w-4xl mx-auto transition-colors duration-300 ${isDark ? 'bg-slate-900/80 border-white/10' : 'bg-white/60 border-white/60 shadow-slate-200/50'}`}>
@@ -35,10 +44,25 @@ export const DashboardActionBar: React.FC<DashboardActionBarProps> = ({
 
                 {/* Tools */}
                 <div className="flex items-center gap-1 md:gap-2 pr-1 md:pr-2">
+                    {session.authEnabled && (
+                        session.user ? (
+                            <Tooltip content={`Signed in as ${session.user.name} — click to log out`} isDark={isDark}>
+                                <button onClick={onLogout} aria-label="Log out" className={toolButton}>
+                                    <LogOut size={18} className="md:w-5 md:h-5" />
+                                </button>
+                            </Tooltip>
+                        ) : (
+                            <Tooltip content="Log in to start, stop and restart apps" isDark={isDark}>
+                                <button onClick={onLogin} aria-label="Log in" className={toolButton}>
+                                    <LogIn size={18} className="md:w-5 md:h-5" />
+                                </button>
+                            </Tooltip>
+                        )
+                    )}
                     <Tooltip content={isDark ? "Light Mode" : "Dark Mode"} isDark={isDark}>
                         <button
                             onClick={() => setIsDark(!isDark)}
-                            className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-all shadow-sm ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-amber-300' : 'bg-white/40 hover:bg-white/80 border border-white/40 hover:border-white/60 text-slate-400 hover:text-violet-500'}`}
+                            className={toolButton}
                         >
                             {isDark ? <Sun size={18} className="md:w-5 md:h-5" /> : <Moon size={18} className="md:w-5 md:h-5" />}
                         </button>

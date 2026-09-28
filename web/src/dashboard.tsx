@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import * as Icons from 'lucide-react';
 
 // --- Types ---
-import type { AppData } from './types/dashboard';
+import type { AppData, SessionInfo } from './types/dashboard';
 
 // --- Mock Data ---
 import { INITIAL_APPS } from './data/mockApps';
@@ -14,6 +14,14 @@ import { DashboardHeader } from './components/dashboard/DashboardHeader';
 import { DashboardActionBar } from './components/dashboard/DashboardActionBar';
 import { LogViewer } from './components/dashboard/LogViewer';
 
+function readAuthError(): string | null {
+    const error = new URLSearchParams(window.location.search).get('auth_error');
+    if (!error) return null;
+    if (error === 'forbidden') return 'This account is not allowed to manage containers.';
+    if (error === 'denied') return 'Login was cancelled.';
+    return 'Login failed. Please try again.';
+}
+
 export default function NexusDashboard() {
     const [isCommandOpen, setIsCommandOpen] = useState(false);
     const [selectedAppForLogs, setSelectedAppForLogs] = useState<AppData | null>(null);
@@ -22,6 +30,32 @@ export default function NexusDashboard() {
 
     const isMock = import.meta.env.MODE === 'development';
     const [apps, setApps] = useState<AppData[]>(isMock ? INITIAL_APPS : []);
+
+    // In mock/dev mode everything is available; otherwise the server tells us what this visitor may do.
+    const [session, setSession] = useState<SessionInfo>({ authEnabled: false, canManage: true });
+    // The server redirects back with ?auth_error=... when a login fails.
+    const [authError, setAuthError] = useState<string | null>(readAuthError);
+
+    const fetchSession = () => {
+        if (isMock) return;
+        fetch('/api/session')
+            .then(res => res.json())
+            .then((data: SessionInfo) => setSession(data))
+            .catch(err => console.error('Failed to fetch session:', err));
+    };
+
+    const login = () => {
+        window.location.href = `/auth/login?returnTo=${encodeURIComponent(window.location.pathname)}`;
+    };
+
+    const logout = async () => {
+        try {
+            await fetch('/auth/logout', { method: 'POST' });
+        } catch (err) {
+            console.error('Failed to log out:', err);
+        }
+        fetchSession();
+    };
 
     const fetchApps = () => {
         if (!isMock) {
@@ -40,6 +74,15 @@ export default function NexusDashboard() {
 
     useEffect(() => {
         fetchApps();
+        fetchSession();
+
+        // Drop ?auth_error from the address bar now that it has been shown.
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('auth_error')) {
+            params.delete('auth_error');
+            const query = params.toString();
+            window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+        }
     }, []);
 
     // Clock Ticker
@@ -116,7 +159,20 @@ export default function NexusDashboard() {
                     onSearchClick={() => setIsCommandOpen(true)}
                     isDark={isDark}
                     setIsDark={setIsDark}
+                    session={session}
+                    onLogin={login}
+                    onLogout={logout}
                 />
+
+                {authError && (
+                    <div
+                        role="alert"
+                        className={`mb-6 flex items-center justify-between gap-4 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-rose-950/40 border-rose-500/30 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-700'}`}
+                    >
+                        <span>{authError}</span>
+                        <button onClick={() => setAuthError(null)} className="font-semibold underline">Dismiss</button>
+                    </div>
+                )}
 
                 {/* Content Grid */}
                 <div className="space-y-8 md:space-y-10 pb-28 md:pb-20">
@@ -137,6 +193,9 @@ export default function NexusDashboard() {
                                         isDark={isDark}
                                         onViewLogs={(app) => setSelectedAppForLogs(app)}
                                         onActionSuccess={fetchApps}
+                                        session={session}
+                                        onLogin={login}
+                                        onUnauthorized={fetchSession}
                                     />
                                 ))}
                             </div>

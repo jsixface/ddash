@@ -67,6 +67,10 @@ class StaticRoutingTest {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("Sub Index Content", response.bodyAsText())
 
+        val responseSlash = client.get("/sub/")
+        assertEquals(HttpStatusCode.OK, responseSlash.status)
+        assertEquals("Sub Index Content", responseSlash.bodyAsText())
+
         val responseExplicit = client.get("/sub/index.html")
         assertEquals(HttpStatusCode.OK, responseExplicit.status)
         assertEquals("Sub Index Content", responseExplicit.bodyAsText())

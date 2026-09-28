@@ -18,3 +18,10 @@ enum class DashLabels(val label: String) {
         }
     }
 }
+
+/**
+ * Whether the container's route/URL should be https. The per-container `ddash.https` label wins over the global
+ * default, so the Caddy route and the dashboard link always agree.
+ */
+fun Map<String, String>.isHttps(globalDefault: Boolean): Boolean =
+    this[DashLabels.Https.label]?.toBoolean() ?: globalDefault

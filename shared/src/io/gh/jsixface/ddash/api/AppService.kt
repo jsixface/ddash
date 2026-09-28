@@ -21,7 +21,7 @@ class AppService(
             emptyList()
         }
 
-        val managedUrls = (dockerApps + externalApps).map { it.url.removePrefix("http://").removePrefix("https://") }.toSet()
+        val managedUrls = (dockerApps + externalApps).map { hostOf(it.url) }.toSet()
 
         val unmanagedApps = caddyRoutes
             .filterNot { route -> managedUrls.any { it == route } }
@@ -43,18 +43,19 @@ class AppService(
         val result = mutableListOf<AppData>()
 
         for (app in allApps) {
-            val host = app.url.removePrefix("http://").removePrefix("https://")
-            if (host.isNotEmpty() && seenUrls.contains(host)) {
+            val host = hostOf(app.url)
+            if (host.isNotEmpty() && !seenUrls.add(host)) {
                 continue
-            }
-            if (host.isNotEmpty()) {
-                seenUrls.add(host)
             }
             result.add(app)
         }
 
         return result.sortedWith(compareBy({ it.category }, { it.order }, { it.name }))
     }
+
+    /** `https://app.local:8443/path` -> `app.local:8443`, so it can be compared with Caddy's host matchers. */
+    private fun hostOf(url: String): String =
+        url.removePrefix("http://").removePrefix("https://").substringBefore('/')
 
     private fun formatRouteToName(route: String): String {
         val parts = route.split(".")

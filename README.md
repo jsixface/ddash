@@ -16,6 +16,8 @@ DDash is a lightweight, self-hosted dashboard and automatic reverse-proxy manage
 - **Custom Icons**: Personalize your dashboard with custom icons for each application. Choose one
   from [Lucide](https://lucide.dev/icons/). (You have to copy the React Component name for the icon. Press the arrow
   near "Copy JSX" and choose "Copy Component Name")
+- **Optional OIDC Login**: Protect start/stop/restart and log access with any OpenID Connect provider (Authelia,
+  Authentik, Keycloak, Google, ...). Anonymous visitors can still see the dashboard and launch apps.
 - **Clean Container Logs**: Automatically filters out ANSI escape sequences (terminal colors) from Docker logs for
   better readability in the web UI.
 ## How it Works
@@ -87,7 +89,56 @@ volumes:
 | `LISTEN_ADDR` | Address DDash listens on | `0.0.0.0` |
 | `CADDY_ADMIN_URL` | URL of the Caddy Admin API | `http://localhost:2019` |
 | `CADDY_AUTO_SAVE_CONFIG` | Whether to tell Caddy to save its config after changes | `false` |
-| `CADDY_SECURE_ROUTING` | If true, dashboard links use `https://`, otherwise `http://` | `false` |
+| `CADDY_SECURE_ROUTING` | Default for containers without a `ddash.https` label: if true, routes go on Caddy's `:443` server and dashboard links use `https://`, otherwise `:80` / `http://` | `false` |
+| `EXTERNAL_CONFIG_PATH` | Path of the [external services](#external-services) TOML file | `/config/services.toml` |
+| `OIDC_ISSUER_URL` | OIDC issuer URL; enables login together with the next two variables (see [Authentication](#authentication-oidc)) | _unset_ |
+| `OIDC_CLIENT_ID` | OIDC client ID | _unset_ |
+| `OIDC_REDIRECT_URI` | Externally reachable callback URL, e.g. `https://dash.example.com/auth/callback` | _unset_ |
+| `OIDC_CLIENT_SECRET` | OIDC client secret (omit for public clients; PKCE is always used) | _unset_ |
+| `OIDC_SCOPES` | Scopes to request | `openid profile email` |
+| `OIDC_ALLOWED_USERS` | Comma-separated e-mails, usernames or subject IDs allowed to log in. Empty means every user the provider authenticates | _unset_ |
+| `OIDC_SESSION_TTL_HOURS` | How long a login lasts | `24` |
+
+Invalid values for `PORT` or the boolean variables are logged as warnings and fall back to the default.
+
+### Authentication (OIDC)
+
+By default DDash has **no authentication**: anyone who can reach it can start, stop and restart your containers and
+read their logs. Since DDash is usually run on a home network that is fine for many setups, but you can turn on OIDC
+login to lock those actions down.
+
+| | Anonymous | Logged in |
+|---|---|---|
+| See the dashboard and app status | yes | yes |
+| Launch apps (open their URL) | yes | yes |
+| View container logs | no | yes |
+| Start / stop / restart containers | no | yes |
+
+Enable it by setting `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` and `OIDC_REDIRECT_URI` (all three are required; a partial
+configuration is ignored with a warning and DDash stays open). Register DDash with your provider as a client using the
+authorization-code flow and your `OIDC_REDIRECT_URI` as the redirect URI.
+
+```yaml
+  ddash:
+    image: ghcr.io/jsixface/ddash:latest
+    environment:
+      - OIDC_ISSUER_URL=https://auth.example.com
+      - OIDC_CLIENT_ID=ddash
+      - OIDC_CLIENT_SECRET=change-me
+      - OIDC_REDIRECT_URI=https://dash.example.com/auth/callback
+      - OIDC_ALLOWED_USERS=alice@example.com   # optional
+```
+
+Details worth knowing:
+
+- Logging in uses the authorization-code flow with PKCE. DDash reads the user's identity from the provider's userinfo
+  endpoint (or the ID token if the provider has none).
+- Sessions live in memory and last `OIDC_SESSION_TTL_HOURS`; restarting DDash logs everyone out. The session cookie is
+  `HttpOnly` and `SameSite=Lax`, and is marked `Secure` when `OIDC_REDIRECT_URI` is `https://`.
+- Only containers with `ddash.enable=true` can be controlled or have their logs read, whether or not OIDC is enabled.
+- Logging out ends the DDash session only; it does not sign you out of the identity provider.
+- Use `https://` for the redirect URI in anything but local testing, and keep `OIDC_ALLOWED_USERS` set if your
+  provider also authenticates people who should not manage your containers.
 
 ### Docker Labels
 
@@ -102,6 +153,9 @@ Configure your applications by adding these labels to your containers:
 | `ddash.icon`     | Icon name (supports Lucide icons)                          | No (defaults to "LayoutGrid")    |
 | `ddash.order`    | Display order within category (integer, ascending)         | No (defaults to Int.MAX_VALUE)   |
 | `ddash.port`     | The internal container port to proxy to                    | see below                        |
+| `ddash.https`    | `true`/`false`: put the route on Caddy's HTTPS (`:443`) or HTTP (`:80`) server and use `https://`/`http://` links. Overrides `CADDY_SECURE_ROUTING` | No (defaults to `CADDY_SECURE_ROUTING`) |
+| `ddash.url`      | Link shown on the dashboard instead of one derived from `ddash.route`. Must be `http(s)://...` (a bare host gets the scheme added); other schemes are ignored | No |
+| `ddash.description` | Tooltip text on the dashboard                           | No                               |
 
 ### Network Modes
 
@@ -116,6 +170,44 @@ DDash handles different Docker network modes to ensure correct routing:
   required for this mode.**
 
 For both Host and Attached network modes, DDash skips automatic port discovery to avoid incorrect routing.
+
+### Route management
+
+DDash only adds Caddy routes; it never removes routes for containers that go away. When it processes containers
+(at startup and whenever a container starts, stops, dies, is renamed or updated) it:
+
+- adds a route for each `ddash.enable=true` container that has a `ddash.route` and none yet;
+- moves a route that sits on the wrong Caddy server (per `ddash.https`) to the right one. A route that also matches
+  other hosts is left in place (with a warning) rather than deleting those hosts too;
+- does nothing if it cannot read Caddy's configuration, so a Caddy outage can't cause duplicate routes.
+
+Caddy configs that use handlers or matchers DDash doesn't know about (`rewrite`, `authentication`, path matchers, ...)
+are fine. If Docker or Caddy is not reachable when DDash starts, DDash keeps retrying in the background (with
+increasing delays up to a minute) while the dashboard is already available. If the Docker event stream drops (for
+example because Docker restarted) DDash reconnects and re-checks all containers.
+
+### External services
+
+To list things that are not Docker containers, create a TOML file (default `/config/services.toml`, change with
+`EXTERNAL_CONFIG_PATH`) and mount it into the container:
+
+```toml
+[[services]]
+name = "Router"
+url = "http://192.168.1.1"
+category = "Network"        # default: Uncategorized
+icon = "Wifi"               # Lucide icon name, default: LayoutGrid
+description = "Home router" # optional
+order = 1                   # optional
+```
+
+The file is re-read on every dashboard refresh. Entries whose `url` does not start with `http://` or `https://` are
+ignored.
+
+### API errors
+
+The dashboard's API answers `401` when a login is required, `404` for containers that don't exist or aren't managed
+by DDash, and `502` when Docker can't be reached, instead of pretending an action succeeded.
 
 ## Example: Adding a new app
 

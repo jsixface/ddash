@@ -1,6 +1,6 @@
 import React from 'react';
-import { ExternalLink, FileText, Play, Power, RefreshCw } from 'lucide-react';
-import type { AppData, MenuItem } from '../../types/dashboard';
+import { ExternalLink, FileText, LogIn, Play, Power, RefreshCw } from 'lucide-react';
+import type { AppData, MenuItem, SessionInfo } from '../../types/dashboard';
 import { ContextMenu } from '../ui/ContextMenu';
 import { StatusDot } from '../ui/StatusDot';
 import { Tooltip } from '../ui/Tooltip';
@@ -11,6 +11,10 @@ interface AppCardProps {
     isDark: boolean;
     onViewLogs: (app: AppData) => void;
     onActionSuccess?: () => void;
+    session: SessionInfo;
+    onLogin: () => void;
+    /** Called when the server answers 401, i.e. the session expired. */
+    onUnauthorized?: () => void;
 }
 
 const AppTitle: React.FC<{ appName: string; isDark: boolean }> = ({ appName, isDark }) => (
@@ -19,7 +23,7 @@ const AppTitle: React.FC<{ appName: string; isDark: boolean }> = ({ appName, isD
     </h3>
 );
 
-export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onActionSuccess }) => {
+export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onActionSuccess, session, onLogin, onUnauthorized }) => {
     const Icon = app.icon;
 
     const handleLaunch = () => {
@@ -28,45 +32,43 @@ export const AppCard: React.FC<AppCardProps> = ({ app, isDark, onViewLogs, onAct
         }
     };
 
-    const handleRestart = async () => {
+    const runAction = async (action: 'restart' | 'stop' | 'start') => {
         try {
-            const res = await fetch(`/api/app/${app.id}/restart`, { method: 'POST' });
+            const res = await fetch(`/api/app/${app.id}/${action}`, { method: 'POST' });
             if (res.ok) onActionSuccess?.();
+            else if (res.status === 401) onUnauthorized?.();
+            else console.error(`Failed to ${action} app: HTTP ${res.status}`);
         } catch (err) {
-            console.error('Failed to restart app:', err);
+            console.error(`Failed to ${action} app:`, err);
         }
     };
 
-    const handleStop = async () => {
-        try {
-            const res = await fetch(`/api/app/${app.id}/stop`, { method: 'POST' });
-            if (res.ok) onActionSuccess?.();
-        } catch (err) {
-            console.error('Failed to stop app:', err);
-        }
-    };
-
-    const handleStart = async () => {
-        try {
-            const res = await fetch(`/api/app/${app.id}/start`, { method: 'POST' });
-            if (res.ok) onActionSuccess?.();
-        } catch (err) {
-            console.error('Failed to start app:', err);
-        }
-    };
+    const handleRestart = () => runAction('restart');
+    const handleStop = () => runAction('stop');
+    const handleStart = () => runAction('start');
 
     const isStopped = app.status === 'EXITED' || app.status === 'DEAD' || app.status === 'CREATED';
 
+    // External/unmanaged entries have no container behind them.
+    const isContainer = app.status !== 'EXTERNAL';
+
+    const manageItems: MenuItem[] = !isContainer ? [] : session.canManage
+        ? [
+            { label: "View Logs", icon: FileText, action: () => onViewLogs(app) },
+            ...(isStopped
+                ? [{ label: "Start Service", icon: Play, action: handleStart }]
+                : [
+                    { label: "Restart Service", icon: RefreshCw, action: handleRestart },
+                    { label: "Stop Service", icon: Power, action: handleStop, variant: 'danger' as const },
+                ]
+            ),
+        ]
+        // Anonymous visitors can still launch apps; managing them needs a login.
+        : [{ label: "Log in to manage", icon: LogIn, action: onLogin }];
+
     const menuItems: MenuItem[] = [
         ...(isStopped ? [] : [{ label: "Launch App", icon: ExternalLink, action: handleLaunch }]),
-        { label: "View Logs", icon: FileText, action: () => onViewLogs(app) },
-        ...(isStopped
-            ? [{ label: "Start Service", icon: Play, action: handleStart }]
-            : [
-                { label: "Restart Service", icon: RefreshCw, action: handleRestart },
-                { label: "Stop Service", icon: Power, action: handleStop, variant: 'danger' as const },
-            ]
-        ),
+        ...manageItems,
     ];
 
     return (

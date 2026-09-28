@@ -6,7 +6,10 @@ import io.gh.jsixface.ddash.caddy.RoutePlacement
 import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
 import io.gh.jsixface.ddash.docker.def.DockerContainer
-import kotlinx.coroutines.CancellationException
+import io.gh.jsixface.ddash.docker.isHttps
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class RouteManager(
     private val dockerClient: DockerApiClient,
@@ -15,8 +18,11 @@ class RouteManager(
     private val logger = Logger.withTag("RouteManager")
     private val settings = Globals.settings
 
-    suspend fun processContainers() {
-        val containers = fetchContainers() ?: return
+    // Startup and Docker events can both trigger a pass; interleaved passes would act on stale route indexes.
+    private val processLock = Mutex()
+
+    suspend fun processContainers() = processLock.withLock {
+        val containers = fetchContainers() ?: return@withLock
 
         val appsToRoute = containers.filter { container ->
             container.labels[DashLabels.Enable.label]?.toBoolean() == true &&
@@ -25,47 +31,83 @@ class RouteManager(
 
         if (appsToRoute.isEmpty()) {
             logger.i { "No containers found with ddash.route label." }
-            return
+            return@withLock
         }
 
-        val placements = fetchRoutePlacements()
+        // If Caddy can't be read we must not carry on: an empty answer would look like "no routes exist" and lead to
+        // duplicate routes.
+        var placements = fetchRoutePlacements() ?: return@withLock
         var changed = false
 
-        appsToRoute.forEach { container ->
+        for (container in appsToRoute) {
             val host = container.labels[DashLabels.Route.label]!!
-            logger.d { "Checking container --- ${container.names}, ${container.image}, ${container.ports}" }
-
-            val expectedSecure = container.labels[DashLabels.Https.label]?.toBoolean() ?: settings.caddySecureRouting
-            val expectedServer = caddyApi.resolveServerId(expectedSecure)
-            if (expectedServer == null) {
-                logger.e { "No Caddy server listening on ${if (expectedSecure) ":443" else ":80"} found. Skipping route for $host." }
-                return@forEach
+            try {
+                if (reconcile(container, host, containers, placements)) {
+                    changed = true
+                    // Adding a route shifts the indexes of the server's existing routes, so re-read them.
+                    placements = fetchRoutePlacements() ?: break
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                logger.e(e) { "Failed to reconcile route for $host" }
             }
-
-            val hostPlacements = placements.filter { it.host == host }
-            val correctPlacement = hostPlacements.find { it.serverId == expectedServer }
-
-            if (correctPlacement != null) {
-                logger.d { "Route for $host already exists on the correct server ($expectedServer)." }
-                return@forEach
-            }
-
-            val upstream = getUpstream(container, containers) ?: return@forEach
-
-            if (hostPlacements.isNotEmpty()) {
-                logger.i { "Route for $host is on the wrong server(s); correcting placement to $expectedServer." }
-                hostPlacements
-                    .sortedByDescending { it.index }
-                    .forEach { caddyApi.removeRoute(it.serverId, it.index) }
-            }
-
-            caddyApi.addRoute(host, upstream, expectedServer)
-            changed = true
         }
 
         if (changed && settings.caddyAutoSaveConfig) {
-            caddyApi.saveConfig()
+            try {
+                caddyApi.saveConfig()
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                logger.w(e) { "Failed to save Caddy configuration" }
+            }
         }
+    }
+
+    /** Makes sure [host] is routed on the right Caddy server. Returns true if Caddy's config was changed. */
+    private suspend fun reconcile(
+        container: DockerContainer,
+        host: String,
+        containers: List<DockerContainer>,
+        placements: List<RoutePlacement>,
+    ): Boolean {
+        logger.d { "Checking container --- ${container.names}, ${container.image}, ${container.ports}" }
+
+        val expectedSecure = container.labels.isHttps(settings.caddySecureRouting)
+        val expectedServer = caddyApi.resolveServerId(expectedSecure)
+        if (expectedServer == null) {
+            logger.e { "No Caddy server listening on ${if (expectedSecure) ":443" else ":80"} found. Skipping route for $host." }
+            return false
+        }
+
+        val hostPlacements = placements.filter { it.host == host }
+        if (hostPlacements.any { it.serverId == expectedServer }) {
+            logger.d { "Route for $host already exists on the correct server ($expectedServer)." }
+            return false
+        }
+
+        val upstream = getUpstream(container, containers) ?: return false
+
+        // Add the new route first so the host is never left without a route if a later step fails. The stale routes
+        // are on other servers, so adding here does not shift their indexes.
+        caddyApi.addRoute(host, upstream, expectedServer)
+
+        if (hostPlacements.isNotEmpty()) {
+            logger.i { "Route for $host is on the wrong server(s); corrected placement to $expectedServer." }
+            hostPlacements
+                .filter { placement ->
+                    (placement.hosts.size <= 1).also { removable ->
+                        if (!removable) {
+                            logger.w {
+                                "Route for $host on ${placement.serverId} also serves ${placement.hosts - host}; " +
+                                    "leaving it in place."
+                            }
+                        }
+                    }
+                }
+                .sortedByDescending { it.index } // highest index first so earlier removals don't shift later ones
+                .forEach { caddyApi.removeRoute(it.serverId, it.index) }
+        }
+        return true
     }
 
     private suspend fun fetchContainers(): List<DockerContainer>? {
@@ -78,20 +120,19 @@ class RouteManager(
         }
     }
 
-    private suspend fun fetchRoutePlacements(): List<RoutePlacement> {
+    private suspend fun fetchRoutePlacements(): List<RoutePlacement>? {
         return try {
             caddyApi.getRoutePlacements()
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             logger.e(e) { "Error fetching current route placements from Caddy" }
-            emptyList()
+            null
         }
     }
 
     private fun getUpstream(container: DockerContainer, allContainers: List<DockerContainer>): String? {
         val containerName = container.names.firstOrNull()?.removePrefix("/") ?: container.id
-        val isDdash = container.labels[DashLabels.Name.label] == "D-Dash" ||
-            container.image.contains("ddash", ignoreCase = true)
+        val isDdash = isDdashContainer(container)
 
         if (isDdash) {
             return "localhost:${settings.port}"
@@ -131,6 +172,16 @@ class RouteManager(
             }
         }
         return "$finalHost:$finalPort"
+    }
+
+    /** DDash's own container is reached over localhost (it shares Caddy's network namespace). */
+    private fun isDdashContainer(container: DockerContainer): Boolean {
+        val name = container.labels[DashLabels.Name.label]
+        if (name.equals("D-Dash", ignoreCase = true) || name.equals("DDash", ignoreCase = true)) return true
+        // Match the image repository name exactly (ghcr.io/jsixface/ddash:latest -> "ddash"), not any image that
+        // merely contains the word.
+        val repository = container.image.substringBefore('@').substringAfterLast('/').substringBefore(':')
+        return repository.equals("ddash", ignoreCase = true)
     }
 
     private fun getContainerPort(container: DockerContainer): String? {

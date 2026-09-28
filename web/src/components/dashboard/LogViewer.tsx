@@ -53,6 +53,14 @@ export const LogViewer: React.FC<LogViewerProps> = ({ app, isOpen, onClose, isDa
                 signal: controller.signal
             });
 
+            if (!response.ok) {
+                const reason = response.status === 401 ? 'Please log in to view logs.'
+                    : response.status === 404 ? 'Container not found.'
+                        : `HTTP ${response.status}`;
+                setLogs([`[ERROR] Could not open log stream: ${reason}`]);
+                return;
+            }
+
             if (!response.body) return;
 
             const reader = response.body.getReader();
