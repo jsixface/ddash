@@ -110,4 +110,49 @@ class HttpCaddyApiTest {
         assertFalse(api { respond("no", HttpStatusCode.ServiceUnavailable) }.checkConnectivity())
         assertFalse(api { throw kotlinx.io.IOException("refused") }.checkConnectivity())
     }
+
+    @Test
+    fun `created routes are tagged and placements expose id and upstream`() = runTest {
+        var body = ""
+        val created = api { request ->
+            body = request.body.toByteArray().decodeToString()
+            respond("", HttpStatusCode.OK)
+        }
+        created.addRoute("a.local", "a:80", "srv0")
+        assertTrue(body.contains("\"@id\":\"ddash-srv0-a.local\""), body)
+
+        val config = """{"srv0":{"listen":[":80"],"routes":[
+            {"@id":"ddash-srv0-a.local","match":[{"host":["a.local"]}],"handle":[{"handler":"reverse_proxy","upstreams":[{"dial":"a:80"}]}]},
+            {"match":[{"host":["multi.local","m2.local"]}],"handle":[{"handler":"reverse_proxy","upstreams":[{"dial":"m:80"}]}]},
+            {"match":[{"host":["sub.local"]}],"handle":[{"handler":"subroute","routes":[]}]},
+            {"match":[{"host":["lb.local"]}],"handle":[{"handler":"reverse_proxy","upstreams":[{"dial":"x:1"},{"dial":"y:1"}]}]}
+        ]}}"""
+        val placements = api { respond(config, HttpStatusCode.OK, jsonHeaders) }.getRoutePlacements().associateBy { it.host }
+
+        assertEquals("ddash-srv0-a.local", placements.getValue("a.local").id)
+        assertEquals("a:80", placements.getValue("a.local").upstream)
+        assertTrue(placements.getValue("a.local").replaceable)
+        assertFalse(placements.getValue("multi.local").replaceable) // shared with another host
+        assertFalse(placements.getValue("sub.local").replaceable) // not a plain reverse proxy
+        assertFalse(placements.getValue("lb.local").replaceable) // several upstreams
+    }
+
+    @Test
+    fun `updateRoute replaces the route at its index`() = runTest {
+        var method: HttpMethod? = null
+        var path: String? = null
+        var body = ""
+        val api = api { request ->
+            method = request.method
+            path = request.url.encodedPath
+            body = request.body.toByteArray().decodeToString()
+            respond("", HttpStatusCode.OK)
+        }
+        api.updateRoute(RoutePlacement("a.local", "srv0", 4, upstream = "old:1"), "a:8080")
+
+        assertEquals(HttpMethod.Patch, method)
+        assertEquals("/config/apps/http/servers/srv0/routes/4", path)
+        assertTrue(body.contains("\"dial\":\"a:8080\""), body)
+        assertTrue(body.contains("\"@id\":\"ddash-srv0-a.local\""), body)
+    }
 }

@@ -7,6 +7,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.get
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -26,6 +27,9 @@ interface CaddyApi {
     suspend fun resolveServerId(secure: Boolean): String?
     suspend fun addRoute(host: String, upstream: String, serverId: String)
     suspend fun removeRoute(serverId: String, index: Int)
+
+    /** Replaces the route at [placement] in place (keeping its position) with one proxying to [upstream]. */
+    suspend fun updateRoute(placement: RoutePlacement, upstream: String)
     suspend fun saveConfig()
 }
 
@@ -57,7 +61,9 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
         val placements = getServers().flatMap { (serverId, server) ->
             server.routes.flatMapIndexed { index, route ->
                 val hosts = route.match.orEmpty().flatMap { it.host }
-                hosts.map { host -> RoutePlacement(host, serverId, index, hosts) }
+                val upstream = (route.handle.singleOrNull() as? CaddyHandler.ReverseProxy)
+                    ?.upstreams?.singleOrNull()?.dial
+                hosts.map { host -> RoutePlacement(host, serverId, index, hosts, route.id, upstream) }
             }
         }
         logger.d { "Found ${placements.size} route placements" }
@@ -75,16 +81,28 @@ class HttpCaddyApi(private val client: HttpClient = ClientFactory.getCaddyClient
 
     override suspend fun addRoute(host: String, upstream: String, serverId: String) {
         logger.i { "Adding route for $host -> $upstream on server $serverId" }
-        val route = CaddyRoute(
-            match = listOf(CaddyMatcher(host = listOf(host))),
-            handle = listOf(CaddyHandler.ReverseProxy(listOf(CaddyUpstream(upstream))))
-        )
         // PUT on an array index inserts at that position, shifting later routes down by one.
         client.put("/config/apps/http/servers/$serverId/routes/0") {
             contentType(ContentType.Application.Json)
-            setBody(route)
+            setBody(ddashRoute(host, upstream, serverId))
         }
     }
+
+    override suspend fun updateRoute(placement: RoutePlacement, upstream: String) {
+        logger.i { "Updating route for ${placement.host} on ${placement.serverId} -> $upstream (was ${placement.upstream})" }
+        // PATCH replaces the element at that path, so the route keeps its position.
+        client.patch("/config/apps/http/servers/${placement.serverId}/routes/${placement.index}") {
+            contentType(ContentType.Application.Json)
+            setBody(ddashRoute(placement.host, upstream, placement.serverId))
+        }
+    }
+
+    /** IDs must be unique across Caddy's whole config, and a host may briefly exist on two servers while moving. */
+    private fun ddashRoute(host: String, upstream: String, serverId: String) = CaddyRoute(
+        id = "ddash-$serverId-$host",
+        match = listOf(CaddyMatcher(host = listOf(host))),
+        handle = listOf(CaddyHandler.ReverseProxy(listOf(CaddyUpstream(upstream)))),
+    )
 
     override suspend fun removeRoute(serverId: String, index: Int) {
         logger.i { "Removing route at index $index from server $serverId" }

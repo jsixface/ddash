@@ -29,7 +29,17 @@ data class RoutePlacement(
     val serverId: String,
     val index: Int,
     val hosts: List<String> = listOf(host),
-)
+    /** The route's `@id`, if it has one (routes created by DDash do). */
+    val id: String? = null,
+    /**
+     * The upstream `dial` address when the route is exactly one plain `reverse_proxy` handler with a single upstream
+     * (the shape DDash creates); null for any other kind of route.
+     */
+    val upstream: String? = null,
+) {
+    /** Whether DDash may rewrite this route: a single-host route of the plain shape it creates itself. */
+    val replaceable: Boolean get() = hosts.size <= 1 && upstream != null
+}
 
 @Serializable
 data class CaddyServers(
@@ -38,6 +48,8 @@ data class CaddyServers(
 
 @Serializable
 data class CaddyRoute(
+    /** Caddy's config-wide unique identifier; DDash tags the routes it creates so they can be recognised. */
+    @SerialName("@id") val id: String? = null,
     val match: List<CaddyMatcher>? = null,
     val terminal: Boolean? = null,
     @Serializable(with = LenientHandlerListSerializer::class)

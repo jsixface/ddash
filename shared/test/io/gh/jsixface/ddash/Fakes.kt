@@ -72,7 +72,11 @@ class FakeCaddyApi(
     override suspend fun getRoutePlacements(): List<RoutePlacement> {
         if (failReads) error("caddy unreachable")
         return routes.flatMap { (serverId, list) ->
-            list.flatMapIndexed { index, hosts -> hosts.map { RoutePlacement(it, serverId, index, hosts) } }
+            list.flatMapIndexed { index, hosts ->
+                // Only single-host routes with a known upstream look like the plain reverse_proxy routes DDash creates.
+                val upstream = hosts.singleOrNull()?.let { upstreams[it] }
+                hosts.map { RoutePlacement(it, serverId, index, hosts, upstream = upstream) }
+            }
         }
     }
 
@@ -88,6 +92,14 @@ class FakeCaddyApi(
     override suspend fun removeRoute(serverId: String, index: Int) {
         if (failWrites) error("caddy write failed")
         routes.getValue(serverId).removeAt(index)
+    }
+
+    val updates = mutableListOf<Pair<String, String>>()
+
+    override suspend fun updateRoute(placement: RoutePlacement, upstream: String) {
+        if (failWrites) error("caddy write failed")
+        updates += placement.host to upstream
+        upstreams[placement.host] = upstream
     }
 
     override suspend fun saveConfig() {

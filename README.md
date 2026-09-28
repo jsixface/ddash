@@ -173,13 +173,20 @@ For both Host and Attached network modes, DDash skips automatic port discovery t
 
 ### Route management
 
-DDash only adds Caddy routes; it never removes routes for containers that go away. When it processes containers
+DDash only adds and corrects Caddy routes; it never removes routes for containers that go away. When it processes containers
 (at startup and whenever a container starts, stops, dies, is renamed or updated) it:
 
 - adds a route for each `ddash.enable=true` container that has a `ddash.route` and none yet;
+- updates an existing route whose upstream no longer matches the container (changed `ddash.port`, renamed container,
+  different network mode). Routes DDash creates are tagged with an `@id` (`ddash-<server>-<host>`), and DDash only
+  rewrites routes of the plain shape it creates itself: a single host with one `reverse_proxy` handler and one
+  upstream. Anything else, such as a route written in your Caddyfile, is never touched (a warning is logged);
 - moves a route that sits on the wrong Caddy server (per `ddash.https`) to the right one. A route that also matches
   other hosts is left in place (with a warning) rather than deleting those hosts too;
 - does nothing if it cannot read Caddy's configuration, so a Caddy outage can't cause duplicate routes.
+
+If several containers claim the same `ddash.route`, DDash logs a warning and routes the host to the container whose
+name sorts first, so they don't keep overwriting each other.
 
 Caddy configs that use handlers or matchers DDash doesn't know about (`rewrite`, `authentication`, path matchers, ...)
 are fine. If Docker or Caddy is not reachable when DDash starts, DDash keeps retrying in the background (with

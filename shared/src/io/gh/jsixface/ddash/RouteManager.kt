@@ -34,12 +34,26 @@ class RouteManager(
             return@withLock
         }
 
+        // One route per host. If several containers claim the same host they would otherwise keep rewriting each
+        // other's upstream, so pick one deterministically and say so.
+        val claims = appsToRoute.groupBy { it.labels[DashLabels.Route.label]!! }
+        val routed = claims.map { (host, claimants) ->
+            val ordered = claimants.sortedBy { it.names.firstOrNull() ?: it.id }
+            if (ordered.size > 1) {
+                logger.w {
+                    "Host $host is claimed by ${ordered.map { it.names.firstOrNull() ?: it.id }}; " +
+                        "routing it to ${ordered.first().names.firstOrNull() ?: ordered.first().id}."
+                }
+            }
+            ordered.first()
+        }
+
         // If Caddy can't be read we must not carry on: an empty answer would look like "no routes exist" and lead to
         // duplicate routes.
         var placements = fetchRoutePlacements() ?: return@withLock
         var changed = false
 
-        for (container in appsToRoute) {
+        for (container in routed) {
             val host = container.labels[DashLabels.Route.label]!!
             try {
                 if (reconcile(container, host, containers, placements)) {
@@ -80,12 +94,10 @@ class RouteManager(
         }
 
         val hostPlacements = placements.filter { it.host == host }
-        if (hostPlacements.any { it.serverId == expectedServer }) {
-            logger.d { "Route for $host already exists on the correct server ($expectedServer)." }
-            return false
-        }
-
+        val correctPlacement = hostPlacements.find { it.serverId == expectedServer }
         val upstream = getUpstream(container, containers) ?: return false
+
+        if (correctPlacement != null) return syncUpstream(correctPlacement, host, upstream)
 
         // Add the new route first so the host is never left without a route if a later step fails. The stale routes
         // are on other servers, so adding here does not shift their indexes.
@@ -172,6 +184,27 @@ class RouteManager(
             }
         }
         return "$finalHost:$finalPort"
+    }
+
+    /**
+     * The route exists on the right server; make sure it still points where the container is now (changed
+     * `ddash.port`, renamed container, different network mode, ...). Only routes of the plain shape DDash creates
+     * are rewritten; anything else is somebody's hand-written config and is left alone.
+     */
+    private suspend fun syncUpstream(placement: RoutePlacement, host: String, upstream: String): Boolean {
+        if (placement.upstream == upstream) {
+            logger.d { "Route for $host already exists on the correct server (${placement.serverId})." }
+            return false
+        }
+        if (!placement.replaceable) {
+            logger.w {
+                "Route for $host on ${placement.serverId} is not a plain single-host reverse_proxy route, so DDash " +
+                    "will not change it (expected upstream $upstream)."
+            }
+            return false
+        }
+        caddyApi.updateRoute(placement, upstream)
+        return true
     }
 
     /** DDash's own container is reached over localhost (it shares Caddy's network namespace). */
