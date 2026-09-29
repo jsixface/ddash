@@ -77,7 +77,7 @@ class OidcClient(
             http.get(url).body<OidcDiscovery>()
         } catch (e: Exception) {
             if (e is kotlin.coroutines.cancellation.CancellationException) throw e
-            throw OidcException("Could not fetch OIDC discovery document from $url", e)
+            throw OidcException("Could not fetch OIDC discovery document from $url: ${e::class.simpleName}: ${e.message}", e)
         }
         if (doc.issuer.trimEnd('/') != settings.issuerUrl) {
             throw OidcException("OIDC issuer mismatch: configured '${settings.issuerUrl}' but provider reports '${doc.issuer}'")
