@@ -26,7 +26,7 @@ data class ExternalConfig(
     val services: List<ExternalService> = emptyList()
 )
 
-open class ExternalConfigService(private val configPath: String = "/config/services.toml") {
+open class ExternalConfigService(private val configPath: String = Globals.settings.externalConfigPath) {
     private val logger = Logger.withTag("ExternalConfigService")
 
     open fun getExternalApps(): List<AppData> {
@@ -39,7 +39,13 @@ open class ExternalConfigService(private val configPath: String = "/config/servi
         return try {
             val content = readText(path)
             val config = Toml.decodeFromString(ExternalConfig.serializer(), content)
-            config.services.map { service ->
+            config.services.filter { service ->
+                // The URL becomes a link in the dashboard: only http(s) is acceptable.
+                val scheme = service.url.substringBefore("://", "").lowercase()
+                (scheme == "http" || scheme == "https").also {
+                    if (!it) logger.w { "Ignoring external service '${service.name}': URL must start with http:// or https://" }
+                }
+            }.map { service ->
                 AppData(
                     id = "external-${service.name.hashCode()}",
                     name = service.name,

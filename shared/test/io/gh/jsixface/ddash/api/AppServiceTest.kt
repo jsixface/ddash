@@ -23,6 +23,7 @@ class AppServiceTest {
         override suspend fun resolveServerId(secure: Boolean): String? = null
         override suspend fun addRoute(host: String, upstream: String, serverId: String) {}
         override suspend fun removeRoute(serverId: String, index: Int) {}
+        override suspend fun updateRoute(placement: RoutePlacement, upstream: String) {}
         override suspend fun saveConfig() {}
     }
 

@@ -12,6 +12,7 @@ dependencies:
   - $ktor.server.core
   - $ktor.server.cio
   - $ktor.server.contentNegotiation
+  - $ktor.server.statusPages
   - $ktor.server.testHost
   - $ktor.client.core
   - $ktor.client.cio
@@ -24,6 +25,7 @@ dependencies:
 
 test-dependencies:
   - $kotlin.test
+  - $ktor.client.mock
 
 settings:
   kotlin:

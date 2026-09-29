@@ -2,9 +2,12 @@ package io.gh.jsixface.ddash.api
 
 import co.touchlab.kermit.Logger
 import io.gh.jsixface.ddash.Globals
+import io.gh.jsixface.ddash.docker.ContainerNotFoundException
 import io.gh.jsixface.ddash.docker.DashLabels
 import io.gh.jsixface.ddash.docker.DockerApiClient
 import io.gh.jsixface.ddash.docker.def.DockerContainer
+import io.gh.jsixface.ddash.docker.isHttps
+import kotlinx.coroutines.flow.Flow
 
 open class DockerAppService(private val apiClient: DockerApiClient) {
     private val logger = Logger.withTag("DockerAppService")
@@ -12,17 +15,13 @@ open class DockerAppService(private val apiClient: DockerApiClient) {
 
     // Get the docker container details through docker sock API.
     // Extract the label metadata from containers and convert to AppData
+    // Errors from the Docker API propagate: an empty list must mean "no apps", not "Docker is broken".
     open suspend fun getAppData(): List<AppData> {
-        return try {
-            val containers = apiClient.listContainers()
-            logger.i { "Found ${containers.size} containers" }
-            containers.mapNotNull { container ->
-                mapToAppData(container)
-            }.sortedBy { it.category }
-        } catch (e: Exception) {
-            logger.e(e) { "Error fetching data from Docker API" }
-            emptyList()
-        }
+        val containers = apiClient.listContainers()
+        logger.i { "Found ${containers.size} containers" }
+        return containers.mapNotNull { container ->
+            mapToAppData(container)
+        }.sortedBy { it.category }
     }
 
     private fun mapToAppData(container: DockerContainer): AppData? {
@@ -31,10 +30,10 @@ open class DockerAppService(private val apiClient: DockerApiClient) {
         // If not explicitly enabled, we don't show it on dashboard.
         if (!enabled) return null
         val name = labels[DashLabels.Name.label] ?: container.names.firstOrNull()?.removePrefix("/") ?: container.id
-        val route = labels[DashLabels.Url.label] ?: labels[DashLabels.Route.label]?.let {
-            val secure = settings.caddySecureRouting || labels[DashLabels.Https.label]?.toBoolean() ?: false
-            (if (secure) "https://" else "http://") + it
-        } ?: ""
+        val secure = labels.isHttps(settings.caddySecureRouting)
+        val route = (labels[DashLabels.Url.label] ?: labels[DashLabels.Route.label])
+            ?.let { normalizeUrl(it, secure) }
+            ?: ""
         val category = labels[DashLabels.Category.label] ?: "Uncategorized"
         val icon = labels[DashLabels.Icon.label] ?: "LayoutGrid"
         val description = labels[DashLabels.Description.label]
@@ -65,35 +64,65 @@ open class DockerAppService(private val apiClient: DockerApiClient) {
         )
     }
 
-    fun getLogs(id: String, timestamps: Boolean): kotlinx.coroutines.flow.Flow<String> {
-        logger.i { "Fetching logs for container $id" }
-        return apiClient.containerLogs(id, tail = 100, follow = true, timestamps = timestamps)
+    /**
+     * Log stream for a container DDash manages.
+     * @throws ContainerNotFoundException if [id] is not an enabled container.
+     */
+    suspend fun getLogs(id: String, timestamps: Boolean): Flow<String> {
+        val containerId = requireManaged(id)
+        logger.i { "Fetching logs for container $containerId" }
+        return apiClient.containerLogs(containerId, tail = 100, follow = true, timestamps = timestamps)
     }
 
     suspend fun stop(id: String) {
-        try {
-            logger.i { "Stopping container $id" }
-            apiClient.stopContainer(id)
-        } catch (e: Exception) {
-            logger.e(e) { "Error stopping container $id" }
-        }
+        val containerId = requireManaged(id)
+        logger.i { "Stopping container $containerId" }
+        apiClient.stopContainer(containerId)
     }
 
     suspend fun restart(id: String) {
-        try {
-            logger.i { "Restarting container $id" }
-            apiClient.restartContainer(id)
-        } catch (e: Exception) {
-            logger.e(e) { "Error restarting container $id" }
-        }
+        val containerId = requireManaged(id)
+        logger.i { "Restarting container $containerId" }
+        apiClient.restartContainer(containerId)
     }
 
     suspend fun start(id: String) {
-        try {
-            logger.i { "Starting container $id" }
-            apiClient.startContainer(id)
-        } catch (e: Exception) {
-            logger.e(e) { "Error starting container $id" }
+        val containerId = requireManaged(id)
+        logger.i { "Starting container $containerId" }
+        apiClient.startContainer(containerId)
+    }
+
+    /**
+     * Only containers that opted in with `ddash.enable=true` may be controlled through the dashboard. The id used
+     * for the Docker call is the one Docker reported, never the raw request value.
+     */
+    private suspend fun requireManaged(id: String): String {
+        val container = apiClient.listContainers().find {
+            it.id == id && it.labels[DashLabels.Enable.label]?.toBoolean() == true
         }
+        if (container == null) {
+            logger.w { "Rejected request for unknown or unmanaged container '${id.take(64)}'" }
+            throw ContainerNotFoundException(id)
+        }
+        return container.id
+    }
+
+    /**
+     * Adds the scheme to bare hosts and drops explicit schemes other than http(s). The value ends up as a link in the
+     * dashboard, so it must never be a `javascript:` (or similar) URL.
+     */
+    private fun normalizeUrl(raw: String, secure: Boolean): String? {
+        val value = raw.trim()
+        if (value.isEmpty()) return null
+        val hasScheme = "://" in value
+        if (hasScheme) {
+            val scheme = value.substringBefore("://").lowercase()
+            if (scheme != "http" && scheme != "https") {
+                logger.w { "Ignoring URL with unsupported scheme: $value" }
+                return null
+            }
+            return value
+        }
+        return (if (secure) "https://" else "http://") + value
     }
 }

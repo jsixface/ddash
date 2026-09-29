@@ -49,6 +49,7 @@ class StartupCoordinatorTest {
         override suspend fun removeRoute(serverId: String, index: Int) {
             removedRoutes.add(serverId to index)
         }
+        override suspend fun updateRoute(placement: RoutePlacement, upstream: String) {}
         override suspend fun saveConfig() {}
     }
 

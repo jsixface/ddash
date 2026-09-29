@@ -22,3 +22,11 @@ export interface MenuItem {
     action: () => void;
     variant?: 'default' | 'danger';
 }
+
+export interface SessionInfo {
+    /** OIDC login is configured on the server. When false every action is open to everyone. */
+    authEnabled: boolean;
+    /** The current visitor may start/stop/restart containers and read logs. */
+    canManage: boolean;
+    user?: { name: string; email?: string } | null;
+}
