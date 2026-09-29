@@ -1,8 +1,8 @@
 FROM debian:bookworm-slim
 
-# CA certificates are needed for HTTPS calls (e.g. the OIDC identity provider)
+# libcurl and CA certificates are needed for HTTPS calls (e.g. the OIDC identity provider)
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
+    && apt-get install -y --no-install-recommends libcurl4 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory in the container

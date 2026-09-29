@@ -24,18 +24,22 @@ object ClientFactory {
     }
 
     /** Plain client (no base URL), e.g. for talking to an OIDC identity provider. */
-    fun getPlainClient() = httpClient {}
+    fun getPlainClient() = tlsHttpClient { configureDefaults() }
 
     private fun httpClient(clientConfig: HttpClientConfig<CIOEngineConfig>.() -> Unit) =
         HttpClient(CIO) {
-            // Turn 4xx/5xx responses into exceptions so callers cannot mistake a failed call for a successful one.
-            expectSuccess = true
-            install(ContentNegotiation) {
-                json(Json {
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                })
-            }
+            configureDefaults()
             clientConfig()
         }
+
+    private fun HttpClientConfig<*>.configureDefaults() {
+        // Turn 4xx/5xx responses into exceptions so callers cannot mistake a failed call for a successful one.
+        expectSuccess = true
+        install(ContentNegotiation) {
+            json(Json {
+                prettyPrint = true
+                ignoreUnknownKeys = true
+            })
+        }
+    }
 }

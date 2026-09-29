@@ -23,6 +23,15 @@ dependencies:
   - $libs.kotlinx.datetime
   - $libs.kotlinx.io
 
+dependencies@linux:
+  - io.ktor:ktor-client-curl:3.5.2
+
+dependencies@macos:
+  - io.ktor:ktor-client-curl:3.5.2
+
+dependencies@mingw:
+  - io.ktor:ktor-client-curl:3.5.2
+
 test-dependencies:
   - $kotlin.test
   - $ktor.client.mock
